@@ -1,4 +1,4 @@
-﻿# Dependencies (Never commit node_modules to GitHub!)
+# Dependencies (Never commit node_modules to GitHub!)
 node_modules/
 frontend/node_modules/
 
@@ -21,5 +21,8 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Local logs
+# Local logs & temp DB files
 *.log
+*.db-shm
+*.db-wal
+*.lnk
