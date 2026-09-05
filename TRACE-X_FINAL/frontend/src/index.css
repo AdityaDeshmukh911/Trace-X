@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --brand-emerald: #10b981;
+    --brand-amber: #f59e0b;
+  }
+
+  body {
+    @apply bg-obsidian-950 text-slate-100;
+    font-family: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
+    accent-color: var(--brand-emerald);
+    background-color: #07090e;
+  }
+
+  /* Monospace addresses */
+  .font-mono {
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* Custom high-end dark scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #07090e; }
+  ::-webkit-scrollbar-thumb { background: #1c2436; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05); }
+  ::-webkit-scrollbar-thumb:hover { background: #2e3a54; }
+}
+
+@layer utilities {
+  .glass-card {
+    background-color: rgba(16, 21, 32, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .glass-card-subtle {
+    background-color: rgba(12, 16, 23, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .glow-border-emerald {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.2);
+  }
+}
+
+/* React Flow overrides */
+.react-flow__controls-button {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  fill: #94a3b8 !important;
+}
+.react-flow__controls-button:hover {
+  background-color: #334155 !important;
+}
+.react-flow__edge-textbg { rx: 4; }
+
+/* Node appear animation
+   BUG FIX: React Flow v11 sets positioning via an inline
+   `transform: translate(x,y)` style directly on .react-flow__node.
+   Animating `transform` (scale) on that SAME element fights the
+   inline translate — the animation's fill-mode keeps overriding it,
+   so every node visually strands at (0,0) after mounting.
+   Fix: animate the inner rendered child instead, and only touch
+   opacity + a scale that doesn't clobber the wrapper's position. */
+.react-flow__node > * {
+  animation: nodeIn 0.25s ease-out both;
+  transform-origin: center;
+}
+@keyframes nodeIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TRACE-X — Pitch Deck</title>
+<style>
+  :root{
+    --bg:#020617; --panel:#0f172a; --border:#1e293b; --border2:#334155;
+    --text:#f1f5f9; --muted:#64748b; --muted2:#94a3b8;
+    --blue:#3b82f6; --red:#ef4444; --amber:#f59e0b; --purple:#a78bfa; --green:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    height:100vh; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .deck{ width:100%; height:100%; position:relative; }
+  .slide{
+    position:absolute; inset:0;
+    display:none; flex-direction:column; justify-content:center;
+    padding:5vw 7vw;
+    opacity:0; transition:opacity .35s ease;
+  }
+  .slide.active{ display:flex; opacity:1; }
+  .kicker{
+    font-size:12px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--blue); font-weight:700; margin-bottom:14px;
+  }
+  h1{ font-size:clamp(32px,5vw,64px); font-weight:800; line-height:1.05; letter-spacing:-1px;}
+  h2{ font-size:clamp(24px,3.2vw,40px); font-weight:800; margin-bottom:22px; letter-spacing:-0.5px;}
+  p.sub{ color:var(--muted2); font-size:clamp(14px,1.6vw,19px); margin-top:16px; max-width:760px; line-height:1.5;}
+  .badge{
+    display:inline-flex; align-items:center; gap:8px; width:fit-content;
+    background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.3);
+    color:var(--blue); font-size:12px; font-weight:700; letter-spacing:1px;
+    padding:6px 14px; border-radius:999px; margin-bottom:24px;
+  }
+  .shield{ width:64px; height:64px; }
+  .grid{ display:grid; gap:18px; margin-top:8px; }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:22px 24px;
+  }
+  .card h3{ font-size:16px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:10px;}
+  .card p{ color:var(--muted2); font-size:13.5px; line-height:1.5;}
+  .num{ font-size:34px; font-weight:800; color:var(--blue); }
+  .row{ display:flex; gap:16px; }
+  .col{ flex:1; }
+  footer.pagebar{
+    position:absolute; bottom:28px; left:7vw; right:7vw;
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:11px; color:var(--muted); letter-spacing:1px;
+  }
+  .dots{ display:flex; gap:8px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--border2); transition:.2s; cursor:pointer;}
+  .dot.on{ background:var(--blue); width:20px; border-radius:4px; }
+  .nav{
+    position:fixed; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%;
+    background:var(--panel); border:1px solid var(--border2);
+    color:var(--muted2); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:18px; user-select:none; z-index:10;
+  }
+  .nav:hover{ color:var(--text); border-color:var(--blue); }
+  #prev{ left:24px; } #next{ right:24px; }
+  .mono{ font-family:'Consolas','Courier New',monospace; }
+  .flow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:20px;}
+  .node{
+    border:1.5px solid var(--border2); border-radius:10px; padding:10px 16px;
+    font-size:12px; font-weight:700; background:var(--panel);
+  }
+  .arrow{ color:var(--muted); font-size:16px;}
+  .n-suspect{ border-color:var(--red); color:var(--red); background:rgba(239,68,68,.08);}
+  .n-mixer{ border-color:var(--amber); color:var(--amber); background:rgba(245,158,11,.08);}
+  .n-bridge{ border-color:var(--purple); color:var(--purple); background:rgba(167,139,250,.08);}
+  .n-vasp{ border-color:var(--blue); color:var(--blue); background:rgba(59,130,246,.08);}
+  .demo-frame{
+    border:1px solid var(--border2); border-radius:16px; background:var(--panel);
+    padding:40px; text-align:center; margin-top:20px;
+  }
+  ul.plain{ list-style:none; }
+  ul.plain li{ padding:8px 0; border-bottom:1px solid var(--border); color:var(--muted2); font-size:14px;}
+  ul.plain li b{ color:var(--text); }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- SLIDE 1 -->
+  <section class="slide active">
+    <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5">
+      <path d="M12 2 L21 5 V11 C21 16 17 20 12 22 C7 20 3 16 3 11 V5 Z"/>
+      <path d="M9 12 L11 14 L15.5 9" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h1 style="margin-top:22px;">TRACE-X</h1>
+    <p class="sub" style="font-size:20px;color:var(--text);font-weight:600;">
+      Threat Response &amp; Automated Crypto Exchange Intelligence
+    </p>
+    <p class="sub">A crypto fraud attribution platform that turns a single wallet address
+      into an investigator-ready case file — in seconds, not weeks.</p>
+    <p class="sub mono" style="color:var(--muted);font-size:12px;">MIT AOE CYBER CELL // DEMO BUILD</p>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="slide">
+    <div class="badge">01 — THE PROBLEM</div>
+    <h2>Manual blockchain forensics doesn't scale.</h2>
+    <div class="grid" style="grid-template-columns:1fr 1fr;">
+      <div class="card">
+        <div class="num">Weeks</div>
+        <h3>per case, manually</h3>
+        <p>Officers manually pivot through Etherscan / Tronscan tabs, hand-copying
+          addresses hop by hop, with no risk scoring or VASP attribution.</p>
+      </div>
+      <div class="card">
+        <div class="num">4.8K+</div>
+        <h3>NCRP crypto complaints / yr</h3>
+        <p>Complaint volume far outpaces manual investigation capacity — cases stall
+          before funds can be frozen at the exchange.</p>
+      </div>
+    </div>
+    <p class="sub">Result: mixers and bridges buy scammers enough time to cash out
+      before a freeze request ever reaches the exchange.</p>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="slide">
+    <div class="badge">02 — THE SOLUTION</div>
+    <h2>One wallet address in → a fraud graph and a VASP name out.</h2>
+    <div class="flow">
+      <div class="node n-suspect">SUSPECT WALLET</div>
+      <span class="arrow">→</span>
+      <div class="node n-mixer">MIXER</div>
+      <span class="arrow">→</span>
+      <div class="node n-bridge">BRIDGE</div>
+      <span class="arrow">→</span>
+      <div class="node n-vasp">EXCHANGE (VASP)</div>
+    </div>
+    <p class="sub" style="margin-top:28px;">TRACE-X runs a multi-hop BFS across the
+      transaction graph, scores risk on 6 weighted factors, and attributes the final
+      cash-out point to a named, regulated exchange with a confidence score —
+      ready for a subpoena.</p>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="slide">
+    <div class="badge">03 — KEY INNOVATIONS</div>
+    <h2>What makes TRACE-X different</h2>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="card">
+        <h3>🎯 VASP Attribution</h3>
+        <p>Not just "here's a graph" — TRACE-X names the exchange, the jurisdiction,
+          and a confidence percentage, so officers know exactly where to send the
+          freeze request.</p>
+      </div>
+      <div class="card">
+        <h3>🧠 AI Narrative</h3>
+        <p>Every trace ends in a plain-English case summary, generated automatically —
+          no more writing up the graph by hand for the FIR.</p>
+      </div>
+      <div class="card">
+        <h3>🛡 Stage-Proof by Design</h3>
+        <p>A DEMO/LIVE adapter pattern means the platform never depends on a live
+          RPC call to work — reliable in a courtroom or on a conference stage.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5 -->
+  <section class="slide">
+    <div class="badge">04 — LIVE DEMO</div>
+    <h2>Watch a trace happen in real time</h2>
+    <div class="demo-frame">
+      <p class="mono" style="color:var(--blue);font-size:13px;letter-spacing:1px;">
+        [ LIVE DEMONSTRATION ]
+      </p>
+      <p class="sub" style="margin:14px auto 0;">
+        localhost:3000 → login → paste <span class="mono" style="color:var(--text);">0xFraud_Origin_Task_Scam</span>
+        → Investigate →
+      </p>
+      <p class="sub" style="margin-top:8px;font-size:12.5px;">
+        5-hop trace · risk score 100 (CRITICAL) · OKX, 78% confidence · PDF report on demand
+      </p>
+    </div>
+  </section>
+
+  <!-- SLIDE 6 -->
+  <section class="slide">
+    <div class="badge">05 — SCALABILITY &amp; ROADMAP</div>
+    <h2>From hackathon build to production intelligence platform</h2>
+    <ul class="plain">
+      <li><b>SAHYOG integration</b> — direct sync with the Ministry of Home Affairs
+        portal for cross-referencing wallet fingerprints against national records</li>
+      <li><b>Live chain adapters</b> — swap the DEMO data source for real RPC / indexer
+        calls (Etherscan, TronGrid, Chainalysis-style APIs) with zero frontend changes</li>
+      <li><b>AI risk model v2</b> — move from weighted heuristics to a trained
+        classifier over labeled fraud graphs</li>
+      <li><b>Multi-agency case sharing</b> — export cases directly into NCRP's
+        existing case management workflow</li>
+    </ul>
+  </section>
+
+  <div class="nav" id="prev">‹</div>
+  <div class="nav" id="next">›</div>
+  <footer class="pagebar">
+    <span id="pageLabel" class="mono">01 / 06</span>
+    <div class="dots" id="dots"></div>
+    <span class="mono">TRACE-X</span>
+  </footer>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsWrap = document.getElementById('dots');
+  const pageLabel = document.getElementById('pageLabel');
+  let i = 0;
+
+  slides.forEach((_, idx) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (idx === 0 ? ' on' : '');
+    d.addEventListener('click', () => go(idx));
+    dotsWrap.appendChild(d);
+  });
+  const dots = document.querySelectorAll('.dot');
+
+  function go(n) {
+    slides[i].classList.remove('active');
+    dots[i].classList.remove('on');
+    i = (n + slides.length) % slides.length;
+    slides[i].classList.add('active');
+    dots[i].classList.add('on');
+    pageLabel.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+  }
+
+  document.getElementById('next').addEventListener('click', () => go(i + 1));
+  document.getElementById('prev').addEventListener('click', () => go(i - 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(i + 1);
+    if (e.key === 'ArrowLeft') go(i - 1);
+  });
+</script>
+</body>
+</html>

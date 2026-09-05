@@ -1,0 +1,389 @@
+{
+  "entities": {
+    "0xFraud_Origin_Task_Scam": {
+      "type": "SUSPECT",
+      "label": "Origin: Task Scam Wallet",
+      "chain": "ETH",
+      "risk_flags": ["linked_complaint_NCRP2024", "fresh_wallet_14d"],
+      "first_seen": "2024-01-01",
+      "tx_count": 6
+    },
+    "0xLayer_A1": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Alpha",
+      "chain": "ETH",
+      "first_seen": "2024-01-15",
+      "tx_count": 2
+    },
+    "0xLayer_A2": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Beta",
+      "chain": "ETH",
+      "first_seen": "2024-01-15",
+      "tx_count": 3
+    },
+    "0xLayer_A3": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Gamma",
+      "chain": "ETH",
+      "first_seen": "2024-01-15",
+      "tx_count": 2
+    },
+    "0xMule_Wallet": {
+      "type": "SUSPECT",
+      "label": "Mule Wallet (DB Flagged)",
+      "chain": "ETH",
+      "risk_flags": ["mule_network_match"],
+      "first_seen": "2024-01-14",
+      "tx_count": 4
+    },
+    "0xAssoc_Scammer": {
+      "type": "SUSPECT",
+      "label": "Associated Scammer (Prior Case)",
+      "chain": "ETH",
+      "risk_flags": ["prior_case_NCRP2023", "mule_network_match"],
+      "first_seen": "2023-11-10",
+      "tx_count": 18
+    },
+    "0xMixer_TornadoCash": {
+      "type": "MIXER",
+      "label": "Tornado Cash (OFAC Sanctioned)",
+      "chain": "ETH",
+      "sanction_status": "OFAC_SDN",
+      "sanction_date": "2022-08-08",
+      "first_seen": "2019-08-01",
+      "tx_count": 91284
+    },
+    "0xDEX_Uniswap": {
+      "type": "DEX",
+      "label": "Uniswap V3 Router",
+      "chain": "ETH",
+      "first_seen": "2021-05-05",
+      "tx_count": 4521099
+    },
+    "0xLayer_B1": {
+      "type": "UNKNOWN",
+      "label": "Post-Mixer Wallet (Delta)",
+      "chain": "ETH",
+      "first_seen": "2024-01-15",
+      "tx_count": 1
+    },
+    "0xLayer_B2": {
+      "type": "UNKNOWN",
+      "label": "Post-DEX Wallet (Epsilon)",
+      "chain": "ETH",
+      "first_seen": "2024-01-15",
+      "tx_count": 2
+    },
+    "0xBridge_Wormhole": {
+      "type": "BRIDGE",
+      "label": "Wormhole Bridge (ETH→TRX)",
+      "chain": "ETH",
+      "first_seen": "2022-01-13",
+      "tx_count": 1893442
+    },
+    "TRXLayer_C1": {
+      "type": "UNKNOWN",
+      "label": "TRON Wallet Zeta",
+      "chain": "TRX",
+      "first_seen": "2024-01-15",
+      "tx_count": 2
+    },
+    "TRXLayer_C2": {
+      "type": "UNKNOWN",
+      "label": "TRON Wallet Eta",
+      "chain": "TRX",
+      "first_seen": "2024-01-15",
+      "tx_count": 1
+    },
+    "TRXBinanceHot_Wallet": {
+      "type": "EXCHANGE",
+      "label": "Binance Hot Wallet",
+      "chain": "TRX",
+      "confidence": 0.92,
+      "vasp_name": "Binance",
+      "vasp_jurisdiction": "Cayman Islands",
+      "first_seen": "2019-09-15",
+      "tx_count": 9923456
+    },
+    "0xOKX_Deposit_ETH": {
+      "type": "EXCHANGE",
+      "label": "OKX Deposit Address",
+      "chain": "ETH",
+      "confidence": 0.78,
+      "vasp_name": "OKX",
+      "vasp_jurisdiction": "Seychelles",
+      "first_seen": "2023-06-01",
+      "tx_count": 47812
+    },
+
+    "0xPigButcher_Main": {
+      "type": "SUSPECT",
+      "label": "Origin: Pig Butchering Wallet",
+      "chain": "TRX",
+      "risk_flags": ["linked_complaint_NCRP2024_MH00389", "romance_scam_pattern"],
+      "first_seen": "2024-01-05",
+      "tx_count": 3
+    },
+    "TRXPig_LayerA1": {
+      "type": "UNKNOWN",
+      "label": "TRON Intermediate Alpha",
+      "chain": "TRX",
+      "first_seen": "2024-01-12",
+      "tx_count": 1
+    },
+    "TRXPig_LayerA2": {
+      "type": "UNKNOWN",
+      "label": "TRON Intermediate Beta",
+      "chain": "TRX",
+      "first_seen": "2024-01-12",
+      "tx_count": 1
+    },
+    "TRXPig_Mule": {
+      "type": "SUSPECT",
+      "label": "Mule Wallet (DB Flagged)",
+      "chain": "TRX",
+      "risk_flags": ["mule_network_match"],
+      "first_seen": "2024-01-11",
+      "tx_count": 5
+    },
+    "TRXPig_Mixer": {
+      "type": "MIXER",
+      "label": "Unregistered TRON Mixing Service",
+      "chain": "TRX",
+      "first_seen": "2023-05-01",
+      "tx_count": 8341
+    },
+    "TRXPig_Assoc": {
+      "type": "SUSPECT",
+      "label": "Associated Scammer (Prior Case)",
+      "chain": "TRX",
+      "risk_flags": ["prior_case_NCRP2023"],
+      "first_seen": "2023-09-20",
+      "tx_count": 11
+    },
+
+    "0xRugPull_Dev": {
+      "type": "SUSPECT",
+      "label": "Origin: Rug Pull Dev Wallet",
+      "chain": "ETH",
+      "risk_flags": ["linked_complaint_NCRP2024_DL00218", "contract_deployer"],
+      "first_seen": "2023-12-20",
+      "tx_count": 4
+    },
+    "RP_Layer1": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Alpha",
+      "chain": "ETH",
+      "first_seen": "2024-01-08",
+      "tx_count": 1
+    },
+    "RP_Layer2": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Beta",
+      "chain": "ETH",
+      "first_seen": "2024-01-08",
+      "tx_count": 1
+    },
+    "RP_Layer3": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Gamma",
+      "chain": "ETH",
+      "first_seen": "2024-01-08",
+      "tx_count": 1
+    },
+    "RP_Layer4": {
+      "type": "UNKNOWN",
+      "label": "Intermediate Delta",
+      "chain": "ETH",
+      "first_seen": "2024-01-08",
+      "tx_count": 1
+    },
+    "RP_Mule": {
+      "type": "SUSPECT",
+      "label": "Mule Wallet (DB Flagged)",
+      "chain": "ETH",
+      "risk_flags": ["mule_network_match"],
+      "first_seen": "2024-01-07",
+      "tx_count": 3
+    },
+    "0x2B5634C42055806a59e9107ED44D43c426E58258": {
+      "type": "EXCHANGE",
+      "label": "KuCoin: Hot Wallet",
+      "chain": "ETH",
+      "confidence": 0.89,
+      "vasp_name": "KuCoin",
+      "vasp_jurisdiction": "Seychelles",
+      "first_seen": "2021-02-10",
+      "tx_count": 615204
+    },
+    "0x503828976D22510aad0201ac7EC88293211D23Da": {
+      "type": "EXCHANGE",
+      "label": "Coinbase: Hot Wallet",
+      "chain": "ETH",
+      "confidence": 0.95,
+      "vasp_name": "Coinbase",
+      "vasp_jurisdiction": "United States",
+      "first_seen": "2019-04-01",
+      "tx_count": 2104883
+    },
+
+    "0xRansomWallet_BTC": {
+      "type": "SUSPECT",
+      "label": "Origin: Ransomware Payment Wallet",
+      "chain": "BTC",
+      "risk_flags": ["linked_complaint_NCRP2024_KA00512", "ransomware_negotiation_match"],
+      "first_seen": "2024-01-16",
+      "tx_count": 3
+    },
+    "RW_Hop1": {
+      "type": "UNKNOWN",
+      "label": "BTC Intermediate Alpha",
+      "chain": "BTC",
+      "first_seen": "2024-01-17",
+      "tx_count": 1
+    },
+    "RW_Hop2": {
+      "type": "UNKNOWN",
+      "label": "BTC Intermediate Beta",
+      "chain": "BTC",
+      "first_seen": "2024-01-17",
+      "tx_count": 1
+    },
+    "RW_Hop3": {
+      "type": "UNKNOWN",
+      "label": "BTC Intermediate Gamma",
+      "chain": "BTC",
+      "first_seen": "2024-01-17",
+      "tx_count": 1
+    },
+    "RW_Assoc": {
+      "type": "SUSPECT",
+      "label": "Associated Scammer (Prior Case)",
+      "chain": "BTC",
+      "risk_flags": ["prior_case_ransomware_2023"],
+      "first_seen": "2023-08-14",
+      "tx_count": 7
+    },
+    "bc1_ChipMixer_Seized": {
+      "type": "MIXER",
+      "label": "ChipMixer (FBI/DOJ Seized)",
+      "chain": "BTC",
+      "sanction_status": "SEIZED_FBI_DOJ_2023",
+      "sanction_date": "2023-03-15",
+      "first_seen": "2017-08-01",
+      "tx_count": 152430
+    },
+    "bc1_Binance_BTC_Hot": {
+      "type": "EXCHANGE",
+      "label": "Binance: BTC Hot Wallet",
+      "chain": "BTC",
+      "confidence": 0.85,
+      "vasp_name": "Binance",
+      "vasp_jurisdiction": "Cayman Islands",
+      "first_seen": "2018-01-01",
+      "tx_count": 4021884
+    }
+  },
+  "transactions": {
+    "0xFraud_Origin_Task_Scam": [
+      {"to": "0xLayer_A1",   "amount": 8.5, "hash": "0xTX_a001f7c2", "timestamp": "2024-01-15 12:14:22", "chain": "ETH"},
+      {"to": "0xLayer_A2",   "amount": 4.2, "hash": "0xTX_a002e891", "timestamp": "2024-01-15 12:14:38", "chain": "ETH"},
+      {"to": "0xLayer_A3",   "amount": 2.1, "hash": "0xTX_a003b441", "timestamp": "2024-01-15 12:14:51", "chain": "ETH"},
+      {"to": "0xMule_Wallet","amount": 0.8, "hash": "0xTX_a004c119", "timestamp": "2024-01-15 12:15:33", "chain": "ETH"}
+    ],
+    "0xLayer_A1": [
+      {"to": "0xMixer_TornadoCash", "amount": 8.4,  "hash": "0xTX_b001d3f8", "timestamp": "2024-01-15 12:17:10", "chain": "ETH"},
+      {"to": "0xAssoc_Scammer",    "amount": 0.1,  "hash": "0xTX_b002a771", "timestamp": "2024-01-15 12:17:45", "chain": "ETH"}
+    ],
+    "0xLayer_A2": [
+      {"to": "0xDEX_Uniswap", "amount": 4.1, "hash": "0xTX_c001e22b", "timestamp": "2024-01-15 12:18:30", "chain": "ETH"}
+    ],
+    "0xLayer_A3": [
+      {"to": "0xOKX_Deposit_ETH", "amount": 2.05, "hash": "0xTX_d001f991", "timestamp": "2024-01-15 12:19:00", "chain": "ETH"}
+    ],
+    "0xMule_Wallet": [
+      {"to": "0xAssoc_Scammer", "amount": 0.75, "hash": "0xTX_e001a43c", "timestamp": "2024-01-15 13:05:00", "chain": "ETH"}
+    ],
+    "0xMixer_TornadoCash": [
+      {"to": "0xLayer_B1", "amount": 8.0, "hash": "0xTX_f001b881", "timestamp": "2024-01-15 12:45:00", "chain": "ETH"}
+    ],
+    "0xDEX_Uniswap": [
+      {"to": "0xLayer_B2", "amount": 4.0, "hash": "0xTX_g001c662", "timestamp": "2024-01-15 12:19:45", "chain": "ETH"}
+    ],
+    "0xLayer_B1": [
+      {"to": "0xBridge_Wormhole", "amount": 7.9, "hash": "0xTX_h001d9a3", "timestamp": "2024-01-15 12:47:00", "chain": "ETH"}
+    ],
+    "0xLayer_B2": [
+      {"to": "0xBridge_Wormhole", "amount": 3.9, "hash": "0xTX_i001e117", "timestamp": "2024-01-15 12:20:30", "chain": "ETH"}
+    ],
+    "0xBridge_Wormhole": [
+      {"to": "TRXLayer_C1", "amount": 11.7, "hash": "0xTX_XCHAIN_001", "timestamp": "2024-01-15 12:50:00", "chain": "TRX"}
+    ],
+    "TRXLayer_C1": [
+      {"to": "TRXLayer_C2",        "amount": 11.5, "hash": "TRX_TX_j001f44a", "timestamp": "2024-01-15 12:52:00", "chain": "TRX"},
+      {"to": "TRXBinanceHot_Wallet","amount": 0.2,  "hash": "TRX_TX_j002a119", "timestamp": "2024-01-15 12:52:30", "chain": "TRX"}
+    ],
+    "TRXLayer_C2": [
+      {"to": "TRXBinanceHot_Wallet","amount": 11.4, "hash": "TRX_TX_k001g881", "timestamp": "2024-01-15 12:55:00", "chain": "TRX"}
+    ],
+
+    "0xPigButcher_Main": [
+      {"to": "TRXPig_LayerA1", "amount": 42000, "hash": "TRX_TX_p001a1", "timestamp": "2024-01-12 09:10:00", "chain": "TRX"},
+      {"to": "TRXPig_LayerA2", "amount": 18500, "hash": "TRX_TX_p002b2", "timestamp": "2024-01-12 09:11:15", "chain": "TRX"},
+      {"to": "TRXPig_Mule",    "amount": 9000,  "hash": "TRX_TX_p003c3", "timestamp": "2024-01-12 09:12:40", "chain": "TRX"}
+    ],
+    "TRXPig_LayerA1": [
+      {"to": "TRXPig_Mixer", "amount": 41200, "hash": "TRX_TX_p004d4", "timestamp": "2024-01-12 09:30:00", "chain": "TRX"}
+    ],
+    "TRXPig_LayerA2": [
+      {"to": "TRXBinanceHot_Wallet", "amount": 18100, "hash": "TRX_TX_p005e5", "timestamp": "2024-01-12 09:35:00", "chain": "TRX"}
+    ],
+    "TRXPig_Mule": [
+      {"to": "TRXPig_Assoc", "amount": 8700, "hash": "TRX_TX_p006f6", "timestamp": "2024-01-12 10:02:00", "chain": "TRX"}
+    ],
+    "TRXPig_Mixer": [
+      {"to": "TRXBinanceHot_Wallet", "amount": 40500, "hash": "TRX_TX_p007g7", "timestamp": "2024-01-12 10:15:00", "chain": "TRX"}
+    ],
+
+    "0xRugPull_Dev": [
+      {"to": "RP_Layer1", "amount": 30, "hash": "0xTX_r001a1", "timestamp": "2024-01-08 03:20:00", "chain": "ETH"},
+      {"to": "RP_Layer2", "amount": 25, "hash": "0xTX_r002b2", "timestamp": "2024-01-08 03:20:14", "chain": "ETH"},
+      {"to": "RP_Layer3", "amount": 20, "hash": "0xTX_r003c3", "timestamp": "2024-01-08 03:20:29", "chain": "ETH"},
+      {"to": "RP_Layer4", "amount": 15, "hash": "0xTX_r004d4", "timestamp": "2024-01-08 03:20:41", "chain": "ETH"}
+    ],
+    "RP_Layer1": [
+      {"to": "0xMixer_TornadoCash", "amount": 29, "hash": "0xTX_r005e5", "timestamp": "2024-01-08 03:35:00", "chain": "ETH"}
+    ],
+    "RP_Layer2": [
+      {"to": "RP_Mule", "amount": 24, "hash": "0xTX_r006f6", "timestamp": "2024-01-08 03:36:00", "chain": "ETH"}
+    ],
+    "RP_Layer3": [
+      {"to": "0xDEX_Uniswap", "amount": 19, "hash": "0xTX_r007g7", "timestamp": "2024-01-08 03:37:00", "chain": "ETH"}
+    ],
+    "RP_Layer4": [
+      {"to": "0x2B5634C42055806a59e9107ED44D43c426E58258", "amount": 14.5, "hash": "0xTX_r008h8", "timestamp": "2024-01-08 03:38:00", "chain": "ETH"}
+    ],
+    "RP_Mule": [
+      {"to": "0x503828976D22510aad0201ac7EC88293211D23Da", "amount": 23, "hash": "0xTX_r009i9", "timestamp": "2024-01-08 04:05:00", "chain": "ETH"}
+    ],
+
+    "0xRansomWallet_BTC": [
+      {"to": "RW_Hop1", "amount": 0.09, "hash": "btc_tx_w001a1", "timestamp": "2024-01-17 06:00:00", "chain": "BTC"},
+      {"to": "RW_Hop2", "amount": 0.04, "hash": "btc_tx_w002b2", "timestamp": "2024-01-17 06:04:00", "chain": "BTC"},
+      {"to": "RW_Hop3", "amount": 0.02, "hash": "btc_tx_w003c3", "timestamp": "2024-01-17 06:09:00", "chain": "BTC"}
+    ],
+    "RW_Hop1": [
+      {"to": "bc1_ChipMixer_Seized", "amount": 0.085, "hash": "btc_tx_w004d4", "timestamp": "2024-01-17 07:00:00", "chain": "BTC"}
+    ],
+    "RW_Hop2": [
+      {"to": "RW_Assoc", "amount": 0.038, "hash": "btc_tx_w005e5", "timestamp": "2024-01-17 07:10:00", "chain": "BTC"}
+    ],
+    "RW_Hop3": [
+      {"to": "bc1_Binance_BTC_Hot", "amount": 0.019, "hash": "btc_tx_w006f6", "timestamp": "2024-01-17 07:15:00", "chain": "BTC"}
+    ],
+    "bc1_ChipMixer_Seized": [
+      {"to": "bc1_Binance_BTC_Hot", "amount": 0.08, "hash": "btc_tx_w007g7", "timestamp": "2024-01-17 08:00:00", "chain": "BTC"}
+    ]
+  }
+}
