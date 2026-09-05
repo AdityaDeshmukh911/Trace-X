@@ -4,6 +4,7 @@ import {
   Search, Plus, CheckCircle2, Clock, Scale, Copy, Check, Printer, X
 } from "lucide-react";
 import { fetchReports, generateDossier, fetchReportCertificate, downloadReportUrl } from "../api/client";
+import { openReportDossier } from "../lib/dossierPdf";
 import { DossierReport } from "../types";
 import { Link } from "react-router-dom";
 
@@ -288,15 +289,24 @@ export default function ReportsPage() {
                             Cert
                           </button>
 
-                          <a
-                            href={downloadReportUrl(rep.id.replace("REP-", "INV-"))}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            onClick={() => openReportDossier({
+                              investigation_id: rep.id.replace("REP-", "INV-"),
+                              case_id: rep.case_id,
+                              target_address: rep.target_address,
+                              chain: rep.chain,
+                              typology: rep.typology,
+                              risk_score: rep.risk_score,
+                              risk_level: rep.risk_score > 75 ? "CRITICAL" : "ELEVATED",
+                              officer_name: rep.investigating_officer,
+                              police_station: rep.police_station,
+                              canonical_sha256: rep.sha256_hash,
+                            })}
                             className="px-2.5 py-1 text-[11px] font-medium bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 rounded-lg border border-emerald-500/40 flex items-center gap-1 transition-all"
                           >
                             <Download size={13} />
                             PDF
-                          </a>
+                          </button>
 
                           <Link
                             to={`/evidence?hash=${rep.sha256_hash}`}

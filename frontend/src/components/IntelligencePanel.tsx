@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { TraceResult, RiskFactor } from "../types";
 import { generateReport, downloadReportUrl } from "../api/client";
+import { openReportDossier } from "../lib/dossierPdf";
 
 // ── Risk gauge SVG ────────────────────────────────────────────────────────────
 function RiskGauge({ score }: { score: number }) {
@@ -98,15 +99,34 @@ export default function IntelligencePanel({ result }: { result: TraceResult }) {
   const riskColor = intel.risk_score > 75 ? "text-red-400" : intel.risk_score > 55 ? "text-amber-400" : "text-emerald-400";
   const riskBg    = intel.risk_score > 75 ? "bg-red-950/30 border-red-900/60" : "bg-amber-950/30 border-amber-900/60";
 
+  function handleOpenReport() {
+    openReportDossier({
+      investigation_id,
+      case_id: result.complaint_id || "NCRP/2024/MH/00441",
+      target_address: result.trace_metadata?.start_address || result.nodes?.[0]?.id,
+      chain: result.trace_metadata?.chain || result.nodes?.[0]?.chain,
+      typology: typology?.typology_name,
+      risk_score: intel.risk_score,
+      risk_level: intel.risk_level,
+      officer_name: "Insp. Aditya Prashant Deshmukh",
+      badge: "MH-CYB-2241",
+      police_station: "State Cyber Police Station, CID Pune HQ",
+      vasp_name: intel.vasp?.name,
+      vasp_address: intel.vasp?.address,
+      canonical_sha256: evidence?.canonical_sha256,
+      narrative: narrative
+    });
+  }
+
   async function handleGenerateReport() {
     setReportLoading(true);
     try {
       await generateReport(investigation_id, "Insp. Aditya Prashant Deshmukh");
-      setReportUrl(downloadReportUrl(investigation_id));
     } catch (e) {
-      console.error(e);
+      console.warn("Backend report gen fallback:", e);
     } finally {
       setReportLoading(false);
+      handleOpenReport();
     }
   }
 
@@ -339,27 +359,14 @@ export default function IntelligencePanel({ result }: { result: TraceResult }) {
 
       {/* ── Action Buttons ── */}
       <div className="space-y-2 pb-4">
-        {reportUrl ? (
-          <a
-            href={reportUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-emerald-600/20"
-          >
-            <CheckCircle2 size={16} />
-            Download Certified NCRP Report
-            <ExternalLink size={12} className="opacity-70" />
-          </a>
-        ) : (
-          <button
-            onClick={handleGenerateReport}
-            disabled={reportLoading}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-blue-600/20"
-          >
-            <FileText size={16} />
-            {reportLoading ? "Generating Certified PDF..." : "Generate NCRP Forensic Report"}
-          </button>
-        )}
+        <button
+          onClick={handleGenerateReport}
+          disabled={reportLoading}
+          className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-emerald-600/20"
+        >
+          <FileText size={16} />
+          {reportLoading ? "Preparing Certified Dossier..." : "View & Download Certified NCRP Report"}
+        </button>
 
         <button
           onClick={() => navigate("/evidence")}

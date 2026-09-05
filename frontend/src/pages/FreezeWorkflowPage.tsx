@@ -101,6 +101,17 @@ export default function FreezeWorkflowPage() {
     setTimeout(() => setCopied(false), 3000);
   }
 
+  function handleDownloadTxt() {
+    if (!selected) return;
+    const blob = new Blob([selected.notice_body || "Statutory Freeze Notice"], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Freeze_Notice_${(selected.notice_number || "CRPC91").replace(/\//g, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="flex h-screen bg-slate-950 text-white overflow-hidden">
       <Sidebar />
@@ -275,15 +286,13 @@ export default function FreezeWorkflowPage() {
                         {copied ? "Copied!" : "Copy Summons"}
                       </button>
 
-                      <a
-                        href={downloadFreezeNoticeUrl(selected.id)}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={handleDownloadTxt}
                         className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs border border-slate-700 transition-colors"
                       >
                         <Download size={12} />
                         Download TXT
-                      </a>
+                      </button>
                     </div>
                   </div>
 
