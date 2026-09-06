@@ -71,11 +71,7 @@ export default function App() {
         />
         <Route
           path="/evidence"
-          element={
-            <ProtectedRoute>
-              <EvidenceVerifyPage />
-            </ProtectedRoute>
-          }
+          element={<EvidenceVerifyPage />}
         />
         <Route
           path="/reports"

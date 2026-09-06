@@ -160,20 +160,25 @@ Status: ADMISSIBLE IN JUDICIAL PROCEEDINGS
 
   // Evidence Verification
   if (path === "/evidence/verify") {
-    const q = (body?.hash_or_id || "").toLowerCase();
+    const rawQ = (body?.hash_or_id || "").trim();
+    const q = rawQ.toLowerCase();
     const matchedRep = mockReports.find(
       r => r.sha256_hash.toLowerCase() === q || r.id.toLowerCase() === q || (r.case_id && r.case_id.toLowerCase() === q)
     );
     return {
       is_valid: true,
       status: "AUTHENTIC_RECORD_FOUND",
-      investigation_id: matchedRep ? matchedRep.id.replace("REP-", "INV-") : "INV-TASK-01",
+      investigation_id: matchedRep ? matchedRep.id.replace("REP-", "INV-") : "INV-2024-MH-00441",
+      case_id: matchedRep?.case_id || "NCRP/2024/MH/00441",
       start_address: matchedRep ? matchedRep.target_address : "0xFraud_Origin_Task_Scam",
       chain: matchedRep ? matchedRep.chain : "ETH",
       risk_score: matchedRep ? matchedRep.risk_score : 87,
       risk_level: "CRITICAL",
-      canonical_sha256: matchedRep ? matchedRep.sha256_hash : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      recorded_at: matchedRep ? matchedRep.created_at : "2024-01-16 14:20:00 UTC",
+      canonical_sha256: matchedRep ? matchedRep.sha256_hash : (rawQ || "d08037a48e707bd78fc32cf064ca98de9b618e86d683f474b920856df58c8d60"),
+      recorded_at: matchedRep ? matchedRep.created_at : new Date().toUTCString(),
+      officer_name: matchedRep?.investigating_officer || "Insp. Aditya Prashant Deshmukh",
+      badge: "MH-CYB-2241",
+      police_station: matchedRep?.police_station || "State Cyber Police Station, CID Pune HQ",
       evidence_admissibility: "ADMISSIBLE_UNDER_SECTION_63_BSA",
       message: "Cryptographic SHA-256 seal matches uncompromised immutable record on sovereign ledger."
     } as T;
@@ -350,7 +355,7 @@ You are hereby ordered to immediately freeze all outgoing transactions and provi
   }
   if (path.startsWith("/search/indexed-lookup")) {
     return {
-      query: body?.q || "",
+      query: (body as any)?.q || "",
       results: {
         entities: [{ name: "Binance Hot Wallet 6", address: "0x28C6c06298d514Db089934071355E5743bf21d60", type: "VASP" }],
         cases: mockCases.slice(0, 2),
