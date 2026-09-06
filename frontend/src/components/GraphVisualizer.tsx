@@ -1,24 +1,25 @@
-﻿import { useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import ReactFlow, {
   Background, Controls, MarkerType,
   useNodesState, useEdgesState, Position, Handle,
-  Node, Edge, NodeTypes,
+  Node, Edge, NodeTypes, useReactFlow
 } from "reactflow";
 import dagre from "@dagrejs/dagre";
 import "reactflow/dist/style.css";
 import {
   AlertTriangle, Shuffle, Building2, GitFork,
-  ArrowLeftRight, HelpCircle, Layers
+  ArrowLeftRight, HelpCircle, Layers, Maximize2,
+  ZoomIn, ZoomOut
 } from "lucide-react";
 import { TraceNode, TraceEdge } from "../types";
 
-const NODE_W = 196;
-const NODE_H = 78;
+const NODE_W = 180;
+const NODE_H = 72;
 
 function applyDagreLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "LR", nodesep: 70, ranksep: 130, marginx: 40, marginy: 40 });
+  g.setGraph({ rankdir: "LR", nodesep: 35, ranksep: 65, marginx: 20, marginy: 20 });
   nodes.forEach((n) => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
   edges.forEach((e) => g.setEdge(e.source, e.target));
   dagre.layout(g);
@@ -111,9 +112,66 @@ interface Props {
   traceNodes: TraceNode[];
   traceEdges: TraceEdge[];
   onNodeClick: (node: TraceNode) => void;
+  panelOpen?: boolean;
 }
 
-export default function GraphVisualizer({ traceNodes, traceEdges, onNodeClick }: Props) {
+function AutoFitHandler({ nodes, panelOpen }: { nodes: Node[]; panelOpen?: boolean }) {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    if (nodes.length > 0) {
+      // Step 1: Immediate fit after node coordinates apply
+      const t1 = setTimeout(() => {
+        fitView({ padding: 0.15, duration: 400 });
+      }, 60);
+
+      // Step 2: Delayed fit after intelligence panel width transition completes
+      const t2 = setTimeout(() => {
+        fitView({ padding: 0.15, duration: 300 });
+      }, 340);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [nodes, panelOpen, fitView]);
+
+  return null;
+}
+
+function CanvasToolbar() {
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
+
+  return (
+    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-[#0C101A]/90 backdrop-blur border border-white/[0.1] p-1.5 rounded-xl z-20 shadow-xl">
+      <button
+        onClick={() => fitView({ padding: 0.15, duration: 400 })}
+        className="px-2.5 py-1 text-[11px] font-mono text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 rounded-lg flex items-center gap-1.5 font-semibold transition-all border border-emerald-500/20"
+        title="Fit All Nodes to Canvas Screen"
+      >
+        <Maximize2 size={12} /> Auto-Fit
+      </button>
+      <div className="w-[1px] h-3 bg-white/10" />
+      <button
+        onClick={() => zoomIn({ duration: 200 })}
+        className="p-1 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+        title="Zoom In"
+      >
+        <ZoomIn size={13} />
+      </button>
+      <button
+        onClick={() => zoomOut({ duration: 200 })}
+        className="p-1 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+        title="Zoom Out"
+      >
+        <ZoomOut size={13} />
+      </button>
+    </div>
+  );
+}
+
+export default function GraphVisualizer({ traceNodes, traceEdges, onNodeClick, panelOpen }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -159,7 +217,7 @@ export default function GraphVisualizer({ traceNodes, traceEdges, onNodeClick }:
   );
 
   return (
-    <div className="w-full h-full bg-slate-950 rounded-2xl border border-slate-800/80 overflow-hidden relative shadow-2xl">
+    <div className="w-full h-full bg-[#080B12] rounded-2xl border border-white/[0.08] overflow-hidden relative shadow-2xl">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -168,16 +226,18 @@ export default function GraphVisualizer({ traceNodes, traceEdges, onNodeClick }:
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
         fitView
-        fitViewOptions={{ padding: 0.25 }}
-        minZoom={0.3}
+        fitViewOptions={{ padding: 0.15 }}
+        minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#1e293b" gap={24} size={1} />
+        <Background color="#141C2E" gap={24} size={1} />
         <Controls
-          style={{ background: "#0f172a", border: "1px solid #334155" }}
+          style={{ background: "#0C101A", border: "1px solid rgba(255,255,255,0.1)" }}
           showInteractive={false}
         />
+        <AutoFitHandler nodes={nodes} panelOpen={panelOpen} />
+        <CanvasToolbar />
       </ReactFlow>
 
       {/* Chain legend */}

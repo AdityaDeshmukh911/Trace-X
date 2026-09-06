@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronRight, Activity, Network, AlertTriangle, GitBranch, Clock, Check } from "lucide-react";
+import { ChevronRight, Activity, Network, AlertTriangle, GitBranch, Clock, Check, FileText } from "lucide-react";
 import Sidebar           from "../components/Sidebar";
 import TopBar             from "../components/TopBar";
 import GraphVisualizer    from "../components/GraphVisualizer";
@@ -8,6 +8,7 @@ import TimelineView       from "../components/TimelineView";
 import IntelligencePanel  from "../components/IntelligencePanel";
 import LoadingSequence    from "../components/LoadingSequence";
 import NodeDetailModal    from "../components/NodeDetailModal";
+import DossierModal       from "../components/DossierModal";
 import { TraceNode, TraceResult } from "../types";
 import { investigate }  from "../api/client";
 import { buildTraceLog, LogStep } from "../lib/traceLog";
@@ -19,17 +20,18 @@ export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [wallet,         setWallet]         = useState("");
-  const [chain,          setChain]          = useState("ETH");
-  const [hops,           setHops]           = useState<number>(5);
-  const [stage,          setStage]          = useState<Stage>("idle");
-  const [result,         setResult]         = useState<TraceResult | null>(null);
-  const [modalNode,      setModalNode]      = useState<TraceNode | null>(null);
-  const [panelOpen,      setPanelOpen]      = useState(false);
-  const [activeTab,      setActiveTab]      = useState<ViewTab>("graph");
-  const [error,          setError]          = useState<string | null>(null);
-  const [traceSteps,     setTraceSteps]     = useState<LogStep[] | undefined>(undefined);
-  const [copiedTx,       setCopiedTx]       = useState<string | null>(null);
+  const [wallet,           setWallet]           = useState("");
+  const [chain,            setChain]            = useState("ETH");
+  const [hops,             setHops]             = useState<number>(5);
+  const [stage,            setStage]            = useState<Stage>("idle");
+  const [result,           setResult]           = useState<TraceResult | null>(null);
+  const [modalNode,        setModalNode]        = useState<TraceNode | null>(null);
+  const [panelOpen,        setPanelOpen]        = useState(false);
+  const [activeTab,        setActiveTab]        = useState<ViewTab>("graph");
+  const [error,            setError]            = useState<string | null>(null);
+  const [traceSteps,       setTraceSteps]       = useState<LogStep[] | undefined>(undefined);
+  const [copiedTx,         setCopiedTx]         = useState<string | null>(null);
+  const [showDossierModal, setShowDossierModal] = useState(false);
 
   async function handleTrace(addr = wallet, chainArg = chain, hopsArg = hops) {
     const target = addr.trim();
@@ -182,14 +184,25 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Direct Dossier Link */}
-                <button
-                  onClick={() => navigate("/reports")}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-[#121724] hover:bg-[#161D2E] text-emerald-400 border border-emerald-500/30 rounded-xl transition-all shadow-sm"
-                >
-                  <ChevronRight size={13} />
-                  Open Reports Desk
-                </button>
+                {/* Direct Dossier and Reports Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowDossierModal(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.35)] cursor-pointer"
+                    title="View, Print and Download Section 63 BSA Forensic Dossier"
+                  >
+                    <FileText size={13} />
+                    View Court Dossier
+                  </button>
+
+                  <button
+                    onClick={() => navigate("/reports")}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-[#121724] hover:bg-[#161D2E] text-slate-300 hover:text-white border border-white/[0.08] rounded-xl transition-all shadow-sm"
+                  >
+                    <ChevronRight size={13} />
+                    Reports Archive
+                  </button>
+                </div>
               </div>
             )}
 
@@ -231,6 +244,7 @@ export default function Dashboard() {
                   traceNodes={result.nodes}
                   traceEdges={result.edges}
                   onNodeClick={handleNodeClick}
+                  panelOpen={panelOpen}
                 />
               )}
 
@@ -328,6 +342,30 @@ export default function Dashboard() {
       </main>
 
       <NodeDetailModal node={modalNode} onClose={() => setModalNode(null)} />
+
+      {result && (
+        <DossierModal
+          isOpen={showDossierModal}
+          onClose={() => setShowDossierModal(false)}
+          data={{
+            investigation_id: result.investigation_id,
+            case_id: result.complaint_id || "NCRP/2024/MH/00441",
+            target_address: result.trace_metadata?.start_address || result.nodes?.[0]?.id,
+            chain: result.trace_metadata?.chain || result.nodes?.[0]?.chain,
+            typology: result.typology?.typology_name,
+            risk_score: result.intelligence.risk_score,
+            risk_level: result.intelligence.risk_level,
+            officer_name: "Insp. Aditya Prashant Deshmukh",
+            badge: "MH-CYB-2241",
+            police_station: "State Cyber Police Station, CID Pune HQ",
+            vasp_name: result.intelligence.vasp?.name,
+            vasp_address: result.intelligence.vasp?.address,
+            canonical_sha256: result.evidence?.canonical_sha256,
+            narrative: result.narrative,
+            edges: result.edges
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -135,6 +135,27 @@ export default function IntelligencePanel({ result }: { result: TraceResult }) {
   return (
     <div className="h-full overflow-y-auto flex flex-col gap-4 pr-1 text-sm">
 
+      {/* ── TOP ACTION: COURT DOSSIER QUICK ACCESS ── */}
+      <button
+        onClick={handleGenerateReport}
+        disabled={reportLoading}
+        className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-emerald-950/80 via-[#0B1A1E]/90 to-teal-950/80 hover:from-emerald-900/90 hover:to-teal-900/90 border border-emerald-500/40 rounded-xl text-left transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.25)] group shrink-0 cursor-pointer"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+            <FileText size={16} />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>Court Dossier &amp; Sec 63 BSA</span>
+              <span className="text-[9px] bg-emerald-500/30 text-emerald-300 font-mono px-1.5 py-0.2 rounded font-semibold">NCRP</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">Section 91 CrPC freeze + multi-hop audit trail</p>
+          </div>
+        </div>
+        <ExternalLink size={14} className="text-emerald-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+      </button>
+
       {/* ── AUTOMATED FRAUD TYPOLOGY CLASSIFICATION ── */}
       {typology && (
         <div className="border border-[#1E2638] bg-[#141A29] rounded-xl p-3.5">
