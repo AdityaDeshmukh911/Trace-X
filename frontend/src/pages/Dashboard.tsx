@@ -34,8 +34,11 @@ export default function Dashboard() {
   const [showDossierModal, setShowDossierModal] = useState(false);
 
   async function handleTrace(addr = wallet, chainArg = chain, hopsArg = hops) {
-    const target = addr.trim();
+    const target = (addr || wallet || result?.trace_metadata?.start_address || "").trim();
     if (!target) return;
+    setWallet(target);
+    setChain(chainArg);
+    setHops(hopsArg);
     setError(null);
     setResult(null);
     setModalNode(null);
@@ -170,7 +173,7 @@ export default function Dashboard() {
                         key={h}
                         onClick={() => {
                           setHops(h);
-                          handleTrace(wallet, chain, h);
+                          handleTrace(wallet || result?.trace_metadata?.start_address, chain, h);
                         }}
                         className={`px-2.5 py-0.5 text-xs font-mono rounded-lg transition-all ${
                           hops === h

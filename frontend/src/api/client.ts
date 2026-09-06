@@ -57,10 +57,11 @@ function getFallbackData<T>(path: string, method: string, body?: any): T {
   if (path === "/investigate") {
     const addr = body?.wallet_address || "0xFraud_Origin_Task_Scam";
     const chain = body?.chain || "ETH";
+    const hops = Number(body?.hops) || 5;
     return {
       status: "success",
-      investigation_id: "INV-DEMO-VERCEL",
-      data: getMockTraceResult(addr, chain)
+      investigation_id: `INV-${Math.abs(addr.split("").reduce((a: number, b: string) => ((a << 5) - a) + b.charCodeAt(0), 0)).toString(16).substring(0, 8).toUpperCase()}`,
+      data: getMockTraceResult(addr, chain, hops)
     } as T;
   }
 
