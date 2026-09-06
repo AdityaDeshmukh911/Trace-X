@@ -3,8 +3,8 @@ import {
   FileText, ShieldCheck, Download, ExternalLink, Filter, 
   Search, Plus, CheckCircle2, Clock, Scale, Copy, Check, Printer, X
 } from "lucide-react";
-import { fetchReports, generateDossier, fetchReportCertificate, downloadReportUrl } from "../api/client";
-import { openReportDossier } from "../lib/dossierPdf";
+import { fetchReports, generateDossier, fetchReportCertificate } from "../api/client";
+import DossierModal from "../components/DossierModal";
 import { DossierReport } from "../types";
 import { Link } from "react-router-dom";
 
@@ -19,6 +19,7 @@ export default function ReportsPage() {
   const [selectedCert, setSelectedCert] = useState<any | null>(null);
   const [certLoading, setCertLoading] = useState<boolean>(false);
   const [showNewModal, setShowNewModal] = useState<boolean>(false);
+  const [activeDossier, setActiveDossier] = useState<any | null>(null);
 
   // New Dossier Form state
   const [newCaseId, setNewCaseId] = useState<string>("CASE-2024-001");
@@ -62,7 +63,7 @@ export default function ReportsPage() {
     if (!newTarget) return;
     setGenerating(true);
     try {
-      await generateDossier({
+      const res = await generateDossier({
         case_id: newCaseId,
         target_address: newTarget,
         chain: newChain,
@@ -72,6 +73,20 @@ export default function ReportsPage() {
       });
       setShowNewModal(false);
       loadReports();
+      if (res?.report) {
+        setActiveDossier({
+          investigation_id: res.report.id.replace("REP-", "INV-"),
+          case_id: res.report.case_id,
+          target_address: res.report.target_address,
+          chain: res.report.chain,
+          typology: res.report.typology,
+          risk_score: res.report.risk_score,
+          risk_level: res.report.risk_score > 75 ? "CRITICAL" : "ELEVATED",
+          officer_name: res.report.investigating_officer,
+          police_station: res.report.police_station,
+          canonical_sha256: res.report.sha256_hash,
+        });
+      }
     } catch (err: any) {
       alert(err.message || "Failed to generate report");
     } finally {
@@ -290,7 +305,7 @@ export default function ReportsPage() {
                           </button>
 
                           <button
-                            onClick={() => openReportDossier({
+                            onClick={() => setActiveDossier({
                               investigation_id: rep.id.replace("REP-", "INV-"),
                               case_id: rep.case_id,
                               target_address: rep.target_address,
@@ -469,6 +484,13 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
+
+      {/* Dossier Modal */}
+      <DossierModal
+        isOpen={Boolean(activeDossier)}
+        onClose={() => setActiveDossier(null)}
+        data={activeDossier || {}}
+      />
     </div>
   );
 }

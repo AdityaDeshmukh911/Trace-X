@@ -1,4 +1,4 @@
-import { TraceResult, Case, AlertItem, FreezeRequestItem, ClusterInfo, DossierReport, SystemSettings, SystemStats } from "../types";
+import { TraceResult, Case, AlertItem, FreezeRequestItem, ClusterInfo, DossierReport, SystemSettings, SystemStats, IngestBatch } from "../types";
 
 export const MOCK_USER = {
   name: "Insp. Aditya Prashant Deshmukh",
@@ -288,3 +288,26 @@ export const getMockTraceResult = (startAddress = "0xFraud_Origin_Task_Scam", ch
     max_hop_depth: 4
   }
 });
+
+export const MOCK_BATCHES: IngestBatch[] = [
+  {
+    id: "BATCH-NCRP-2024-01",
+    batch_id: "BATCH-NCRP-2024-01",
+    batch_name: "NCRP National Intake Batch #881",
+    status: "PROCESSED",
+    total_records: 5,
+    processed_records: 5,
+    high_risk_count: 4,
+    processed_count: 5,
+    flagged_high_risk: 4,
+    auto_freeze_alerts: 3,
+    created_at: "2024-01-16 10:30:00 UTC",
+    records: [
+      { complaint_id: "NCRP/2024/MH/00911", wallet_address: "0xFraud_Origin_Task_Scam", chain: "ETH", category: "Task Scam", victim_loss_inr: 1250000, victim_name: "Rajesh Kumar", risk_score: 87, risk_level: "CRITICAL", status: "TRACED" },
+      { complaint_id: "NCRP/2024/KA/00742", wallet_address: "0xPigButcher_Main", chain: "TRX", category: "Investment Fraud", victim_loss_inr: 4500000, victim_name: "Anita Desai", risk_score: 72, risk_level: "HIGH", status: "TRACED" },
+      { complaint_id: "NCRP/2024/DL/00431", wallet_address: "0xRugPull_Dev", chain: "ETH", category: "Exchange Hack", victim_loss_inr: 12000000, victim_name: "Virendra Sachdeva", risk_score: 94, risk_level: "CRITICAL", status: "TRACED" },
+      { complaint_id: "NCRP/2024/GJ/00519", wallet_address: "0xTelegram_Job_Scam_Origin", chain: "ETH", category: "Telegram Task Fraud", victim_loss_inr: 1850000, victim_name: "Sunil Mehta", risk_score: 81, risk_level: "HIGH", status: "TRACED" },
+      { complaint_id: "NCRP/2024/TN/00688", wallet_address: "0xFedEx_Impersonation_TRX", chain: "TRX", category: "Digital Arrest Police Extortion", victim_loss_inr: 3200000, victim_name: "Dr. S. Venkat", risk_score: 89, risk_level: "CRITICAL", status: "TRACED" }
+    ]
+  }
+];

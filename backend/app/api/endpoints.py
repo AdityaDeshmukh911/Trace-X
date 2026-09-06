@@ -1,6 +1,7 @@
 import uuid
 import os
 import json
+import tempfile
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
@@ -22,7 +23,7 @@ from app.services.alerts import AlertService
 from app.services.ingestion import BulkIngestionService
 
 router = APIRouter()
-REPORT_DIR = "/tmp/tracex_reports"
+REPORT_DIR = os.path.join(tempfile.gettempdir(), "tracex_reports")
 os.makedirs(REPORT_DIR, exist_ok=True)
 
 # ══ AUTH ═══════════════════════════════════════════════════════════════════════
@@ -167,7 +168,7 @@ def create_dossier(req: CreateReportRequest, user=Depends(verify_token)):
         "investigating_officer": officer,
         "police_station": station,
         "sha256_hash": sha256,
-        "pdf_path": f"/tmp/tracex_reports/{rep_id}.pdf",
+        "pdf_path": os.path.join(REPORT_DIR, f"{rep_id}.pdf"),
         "status": "CERTIFIED",
         "evidence_metadata": {
             "certificate_id": f"CERT-65B-{rep_id}",

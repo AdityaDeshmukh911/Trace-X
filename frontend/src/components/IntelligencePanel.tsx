@@ -6,8 +6,8 @@ import {
   Snowflake, Award, Cpu, ShieldCheck, Copy, Check
 } from "lucide-react";
 import { TraceResult, RiskFactor } from "../types";
-import { generateReport, downloadReportUrl } from "../api/client";
-import { openReportDossier } from "../lib/dossierPdf";
+import { generateReport } from "../api/client";
+import DossierModal from "./DossierModal";
 
 // ── Risk gauge SVG ────────────────────────────────────────────────────────────
 function RiskGauge({ score }: { score: number }) {
@@ -90,7 +90,7 @@ function useTypingText(text: string, speed = 10) {
 export default function IntelligencePanel({ result }: { result: TraceResult }) {
   const { intelligence: intel, narrative, narrative_source, investigation_id, typology, ml_anomaly, evidence } = result;
   const [reportLoading, setReportLoading] = useState(false);
-  const [reportUrl, setReportUrl] = useState<string | null>(null);
+  const [showDossierModal, setShowDossierModal] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [showSop, setShowSop] = useState(false);
   const navigate = useNavigate();
@@ -100,22 +100,7 @@ export default function IntelligencePanel({ result }: { result: TraceResult }) {
   const riskBg    = intel.risk_score > 75 ? "bg-red-950/30 border-red-900/60" : "bg-amber-950/30 border-amber-900/60";
 
   function handleOpenReport() {
-    openReportDossier({
-      investigation_id,
-      case_id: result.complaint_id || "NCRP/2024/MH/00441",
-      target_address: result.trace_metadata?.start_address || result.nodes?.[0]?.id,
-      chain: result.trace_metadata?.chain || result.nodes?.[0]?.chain,
-      typology: typology?.typology_name,
-      risk_score: intel.risk_score,
-      risk_level: intel.risk_level,
-      officer_name: "Insp. Aditya Prashant Deshmukh",
-      badge: "MH-CYB-2241",
-      police_station: "State Cyber Police Station, CID Pune HQ",
-      vasp_name: intel.vasp?.name,
-      vasp_address: intel.vasp?.address,
-      canonical_sha256: evidence?.canonical_sha256,
-      narrative: narrative
-    });
+    setShowDossierModal(true);
   }
 
   async function handleGenerateReport() {
@@ -126,7 +111,7 @@ export default function IntelligencePanel({ result }: { result: TraceResult }) {
       console.warn("Backend report gen fallback:", e);
     } finally {
       setReportLoading(false);
-      handleOpenReport();
+      setShowDossierModal(true);
     }
   }
 
@@ -376,6 +361,28 @@ export default function IntelligencePanel({ result }: { result: TraceResult }) {
           Verify Electronic Evidence Certificate
         </button>
       </div>
+
+      <DossierModal
+        isOpen={showDossierModal}
+        onClose={() => setShowDossierModal(false)}
+        data={{
+          investigation_id,
+          case_id: result.complaint_id || "NCRP/2024/MH/00441",
+          target_address: result.trace_metadata?.start_address || result.nodes?.[0]?.id,
+          chain: result.trace_metadata?.chain || result.nodes?.[0]?.chain,
+          typology: typology?.typology_name,
+          risk_score: intel.risk_score,
+          risk_level: intel.risk_level,
+          officer_name: "Insp. Aditya Prashant Deshmukh",
+          badge: "MH-CYB-2241",
+          police_station: "State Cyber Police Station, CID Pune HQ",
+          vasp_name: intel.vasp?.name,
+          vasp_address: intel.vasp?.address,
+          canonical_sha256: evidence?.canonical_sha256,
+          narrative: narrative,
+          edges: result.edges
+        }}
+      />
     </div>
   );
 }

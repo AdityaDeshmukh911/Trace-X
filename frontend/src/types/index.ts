@@ -201,12 +201,18 @@ export interface FreezeRequestItem {
 
 export interface IngestBatch {
   id: string;
+  batch_id?: string;
   batch_name: string;
   total_records: number;
   processed_records: number;
   high_risk_count: number;
   status: string;
   created_at: string;
+  flagged_high_risk?: number;
+  processed_count?: number;
+  auto_freeze_alerts?: number;
+  records?: any[];
+  results?: any[];
 }
 
 export interface AuthUser {

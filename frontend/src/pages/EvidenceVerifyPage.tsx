@@ -1,4 +1,5 @@
-﻿import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { 
   ShieldCheck, Search, CheckCircle2, XCircle, 
   FileCheck, ShieldAlert, Award, Hash, ExternalLink 
@@ -7,17 +8,17 @@ import Sidebar from "../components/Sidebar";
 import { verifyEvidence } from "../api/client";
 
 export default function EvidenceVerifyPage() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any | null>(null);
 
-  async function handleVerify(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    const target = query.trim();
-    if (!target) return;
+  async function executeVerify(target: string) {
+    const trimmed = target.trim();
+    if (!trimmed) return;
     setLoading(true);
     try {
-      const res = await verifyEvidence(target);
+      const res = await verifyEvidence(trimmed);
       setResult(res);
     } catch (err: any) {
       setResult({ is_valid: false, message: err.message || "Verification request failed" });
@@ -25,6 +26,19 @@ export default function EvidenceVerifyPage() {
       setLoading(false);
     }
   }
+
+  async function handleVerify(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    executeVerify(query);
+  }
+
+  useEffect(() => {
+    const paramHash = searchParams.get("hash") || searchParams.get("verify") || searchParams.get("q") || searchParams.get("id");
+    if (paramHash) {
+      setQuery(paramHash);
+      executeVerify(paramHash);
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex h-screen bg-slate-950 text-white overflow-hidden">

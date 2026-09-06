@@ -5,7 +5,7 @@ import {
   AlertTriangle, ArrowRight, Play, RefreshCw, Layers 
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
-import { ingestCsv, downloadTemplateUrl, fetchIngestBatches } from "../api/client";
+import { ingestCsv, downloadCsvTemplateFile, fetchIngestBatches } from "../api/client";
 import { IngestBatch } from "../types";
 
 const MOCK_NCRP_CSV = `complaint_id,wallet_address,chain,category,victim_loss_inr,victim_name,investigator
@@ -81,15 +81,14 @@ export default function IngestionPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <a
-              href={downloadTemplateUrl()}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={downloadCsvTemplateFile}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition-colors"
             >
               <Download size={13} />
               CSV Template
-            </a>
+            </button>
           </div>
         </header>
 
