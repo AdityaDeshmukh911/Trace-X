@@ -1,4 +1,4 @@
-﻿import networkx as nx
+import networkx as nx
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
@@ -167,6 +167,19 @@ class TraceEngine:
         for node_data in nodes.values():
             chains_used.add(node_data.get("chain", "ETH"))
 
+        # Factor 0: Suspect Origin Status
+        origin_node = nodes.get(start_address, {})
+        origin_flags = origin_node.get("risk_flags", [])
+        if origin_node.get("is_suspect") or any(f in origin_flags for f in ["ILLICIT_HEIST", "TASK_SCAM", "ROMANCE_FRAUD", "RANSOMWARE_PAYMENT", "HIGH_RISK", "VICTIM_DRAIN", "linked_complaint_NCRP2024"]):
+            risk_score += 40
+            risk_factors.append({
+                "factor": "SUSPECT_ORIGIN_FLAGGED",
+                "points": 40,
+                "description": f"Origin wallet {start_address[:10]}... identified with high-risk cyber fraud indicators.",
+                "severity": "CRITICAL",
+                "icon": "⚠️",
+            })
+
         # Factor 1: Mixer Interaction
         mixer_nodes = [n for n in nodes.values() if n.get("type") == "MIXER"]
         if mixer_nodes:
@@ -182,14 +195,14 @@ class TraceEngine:
                 "icon": "🔴",
             })
 
-        # Factor 2: Cross-Chain Obfuscation
-        if len(chains_used) > 1:
+        # Factor 2: Cross-Chain Obfuscation / Bridge
+        has_bridge = any(n.get("type") == "BRIDGE" for n in nodes.values())
+        if len(chains_used) > 1 or has_bridge:
             risk_score += 25
             risk_factors.append({
                 "factor": "CROSS_CHAIN_OBFUSCATION",
                 "points": 25,
-                "description": f"Cross-chain bridge used to move funds across "
-                               f"{' → '.join(sorted(chains_used))} networks. "
+                "description": f"Cross-chain bridge / multi-network protocol utilized. "
                                f"Significantly increases attribution complexity.",
                 "severity": "HIGH",
                 "icon": "🌉",
@@ -285,7 +298,7 @@ class TraceEngine:
 
         return {
             "risk_score": risk_score,
-            "risk_level": "CRITICAL" if risk_score > 75 else "HIGH" if risk_score > 55 else "ELEVATED",
+            "risk_level": "CRITICAL" if risk_score > 75 else "HIGH" if risk_score > 55 else "ELEVATED" if risk_score > 30 else "LOW",
             "risk_factors": risk_factors,
             "vasp": vasp_match,
             "secondary_vasps": secondary_vasps,

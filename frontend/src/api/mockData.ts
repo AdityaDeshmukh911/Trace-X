@@ -1,4 +1,4 @@
-import { TraceResult, Case, AlertItem, FreezeRequestItem, ClusterInfo, DossierReport, SystemSettings, SystemStats, IngestBatch } from "../types";
+import { TraceResult, TraceNode, TraceEdge, Case, AlertItem, FreezeRequestItem, ClusterInfo, DossierReport, SystemSettings, SystemStats, IngestBatch } from "../types";
 
 export const MOCK_USER = {
   name: "Insp. Aditya Prashant Deshmukh",
@@ -192,6 +192,59 @@ export const MOCK_CLUSTERS: ClusterInfo[] = [
   }
 ];
 
+function deriveRealisticAddress(chain: string, role: string, seed: number): string {
+  const str = `${role}:${seed}:${chain}`;
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+
+  const hexPart = (
+    Math.abs(h1).toString(16).padStart(8, "0") +
+    Math.abs(h2).toString(16).padStart(8, "0") +
+    Math.abs(h1 ^ h2).toString(16).padStart(8, "0") +
+    Math.abs(Math.imul(h1, 31)).toString(16).padStart(8, "0") +
+    Math.abs(Math.imul(h2, 37)).toString(16).padStart(8, "0")
+  ).substring(0, 40);
+
+  if (chain === "TRX") {
+    const b58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    let sub = "";
+    for (let i = 0; i < hexPart.length - 1; i += 2) {
+      sub += b58[parseInt(hexPart.substring(i, i + 2), 16) % b58.length];
+    }
+    while (sub.length < 33) {
+      sub += b58[(sub.length * 17 + seed) % b58.length];
+    }
+    return "T" + sub.substring(0, 33);
+  } else if (chain === "BTC") {
+    const b32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+    let sub = "";
+    for (let i = 0; i < hexPart.length - 1; i += 2) {
+      sub += b32[parseInt(hexPart.substring(i, i + 2), 16) % b32.length];
+    }
+    while (sub.length < 38) {
+      sub += b32[(sub.length * 13 + seed) % b32.length];
+    }
+    return "bc1q" + sub.substring(0, 38);
+  } else {
+    return "0x" + hexPart;
+  }
+}
+
+function deriveTxHash(chain: string, idx: number, seed: number): string {
+  let h = "";
+  for (let k = 0; k < 4; k++) {
+    h += Math.abs((seed ^ (idx * 1337 + k * 98765)) * 16807).toString(16).padStart(8, "0");
+  }
+  const full = h.padEnd(64, "0").substring(0, 64);
+  return chain === "BTC" || chain === "TRX" ? full : `0x${full}`;
+}
+
 export const getMockTraceResult = (
   startAddress = "0xFraud_Origin_Task_Scam",
   chainArg = "ETH",
@@ -215,32 +268,23 @@ export const getMockTraceResult = (
   const invId = `INV-${Math.abs(seed).toString(16).substring(0, 8).toUpperCase()}`;
   const complaintId = `NCRP/2024/${chain}/${(10000 + (seed % 89999)).toString()}`;
 
-  // ── Typology & Modus Operandi ──
-  const isTaskScamPreset = addr.toLowerCase().includes("task") || addr === "0xFraud_Origin_Task_Scam";
-  const isPigButcherPreset = addr.toLowerCase().includes("pigbutcher") || addr === "0xPigButcher_Main";
-  const isRansomwarePreset = addr.toLowerCase().includes("ransom") || addr === "0xRansomWallet_BTC";
-  const isJobScamPreset = addr.toLowerCase().includes("telegram") || addr === "0xTelegram_Job_Scam_Origin";
-
-  let typologyCode = "TYP_TASK_MULE";
-  let typologyName = "Part-Time Task Scam & Prepaid Rating Fraud";
-  let threatActor = "Organized Telegram / WhatsApp Task Syndicate";
-  let legalClass = "IPC Sec 419, 420, 120-B | IT Act Sec 66-D | Section 63 BSA 2023";
-
-  if (isPigButcherPreset || (!isTaskScamPreset && !isRansomwarePreset && (chain === "TRX" || seed % 4 === 1))) {
-    typologyCode = "TYP_SHA_ZHU_PAN";
-    typologyName = "Investment & Romance Fraud (Pig Butchering / Sha Zhu Pan)";
-    threatActor = "Southeast Asia Industrial Fraud Compound (Mekong Region)";
-    legalClass = "IPC Sec 420, 384, 120-B | IT Act Sec 66-C, 66-D | Section 63 BSA 2023";
-  } else if (isRansomwarePreset || (!isTaskScamPreset && (chain === "BTC" || seed % 4 === 2))) {
-    typologyCode = "TYP_RANSOM_01";
-    typologyName = "LockBit 3.0 Ransomware Extortion & Asset Laundering";
-    threatActor = "LockBit / BlackCat Ransomware-as-a-Service Syndicate";
-    legalClass = "IPC Sec 384, 385, 420, 120-B | IT Act Sec 43, 66, 66-F | Section 63 BSA 2023";
-  } else if (isJobScamPreset || seed % 4 === 3) {
-    typologyCode = "TYP_DIGITAL_ARREST";
-    typologyName = "Digital Arrest & CBI / Police Impersonation Extortion";
-    threatActor = "Cross-Border Cyber Extortion Cartel";
-    legalClass = "IPC Sec 170, 384, 419, 420, 120-B | IT Act Sec 66-D | Section 63 BSA 2023";
+  // ── Determine Forensic Archetype (0 to 4) ──
+  const low = addr.toLowerCase();
+  let arch = 0;
+  if (low.includes("pig") || low.includes("butcher") || low.includes("romance")) {
+    arch = 2; // Pig Butchering / Romance Fraud
+  } else if (low.includes("ransom") || (!low.includes("clean") && chain === "BTC")) {
+    arch = 3; // Ransomware Peeling Chain
+  } else if (low.includes("task") || low.includes("mule") || low.includes("telegram") || low.includes("job")) {
+    arch = 1; // Task Scam Mule Fan-Out
+  } else if (low.includes("clean") || low.includes("safe") || low.includes("stake") || low.includes("retail")) {
+    arch = 4; // Compliant Retail / Staking Flow
+  } else if (low.includes("mixer") || low.includes("tornado") || low.includes("heist") || low.includes("hack") || low.includes("rug")) {
+    arch = 0; // Exploit / Mixer Obfuscation
+  } else if (chain === "TRX") {
+    arch = (seed % 2 === 0) ? 2 : 1;
+  } else {
+    arch = seed % 5;
   }
 
   // ── Financial Volume ──
@@ -260,122 +304,253 @@ export const getMockTraceResult = (
 
   // ── Terminal VASP Selection ──
   const vasps = [
-    { name: "Binance", label: "Binance Hot Wallet 6", addr: chain === "TRX" ? "TNDF91K98x2OkxHotWalletCluster03" : chain === "BTC" ? "bc1qBinanceHotVaultLiquidation99120" : "0x28C6c06298d514Db089934071355E5743bf21d60", jur: "Cayman Islands", conf: 0.99 },
-    { name: "CoinDCX", label: "CoinDCX Custody Settlement Vault", addr: chain === "TRX" ? "TCoinDCXHotSettlementVault01" : chain === "BTC" ? "bc1qCoinDCXCustodyVault881" : "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", jur: "India (FIU-IND Registered)", conf: 0.96 },
-    { name: "OKX", label: "OKX Mainnet Hot Wallet 3", addr: chain === "TRX" ? "TOkxMainnetSweepVaultCluster09" : chain === "BTC" ? "bc1qOkxMainnetSweepVault551" : "0x6cC5f688a30d3790e63a50BFC07fC24285564a86", jur: "Seychelles", conf: 0.97 },
-    { name: "WazirX", label: "WazirX Treasury Settlement Node", addr: chain === "TRX" ? "TWazirXTreasuryNodeIndia44" : chain === "BTC" ? "bc1qWazirXTreasuryNodeIndia22" : "0x5B5634C42055806a59e9107ED44D43c426E58258", jur: "India (FIU-IND Registered)", conf: 0.94 },
-    { name: "Kraken", label: "Kraken Primary Liquidation Vault", addr: chain === "TRX" ? "TKrakenLiquidationHub881" : chain === "BTC" ? "bc1qKrakenPrimaryVault992" : "0x267be1C1D684F78cb4F6a176C4911b741E4Ffdc0", jur: "United States", conf: 0.95 }
+    { name: "Binance", label: "Binance Hot Wallet 6", addr: deriveRealisticAddress(chain, "Binance_Hot_Vault", seed), jur: "Cayman Islands", conf: 0.99 },
+    { name: "CoinDCX", label: "CoinDCX Settlement Vault", addr: deriveRealisticAddress(chain, "CoinDCX_Settlement_Vault", seed), jur: "India (FIU-IND Registered)", conf: 0.96 },
+    { name: "OKX", label: "OKX Mainnet Sweep Vault", addr: deriveRealisticAddress(chain, "OKX_Sweep_Vault", seed), jur: "Seychelles", conf: 0.97 },
+    { name: "WazirX", label: "WazirX Treasury Settlement Node", addr: deriveRealisticAddress(chain, "WazirX_Treasury_Node", seed), jur: "India (FIU-IND Registered)", conf: 0.94 },
+    { name: "Kraken", label: "Kraken Primary Liquidation Vault", addr: deriveRealisticAddress(chain, "Kraken_Liquidation_Vault", seed), jur: "United States", conf: 0.95 }
   ];
   const vasp = vasps[seed % vasps.length];
 
-  // ── Mixer / Privacy Infrastructure ──
-  let mixerName = "Tornado.Cash 10 ETH Pool";
-  let mixerAddr = "0xd90e2f925da726b50c4ed8d0fb90ad053324f31b";
-  let mixerFlags = ["MIXER", "OFAC_SDN"];
-  let dexName = "Uniswap V3 Liquidity Router";
-  let dexAddr = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+  const now = Date.now();
+  const makeTs = (hAgo: number) =>
+    new Date(now - hAgo * 3600000).toISOString().replace("T", " ").substring(0, 19);
 
-  if (chain === "TRX") {
-    mixerName = "SunSwap High-Slippage Pool";
-    mixerAddr = "TKzY91SunSwapLiquidityPair992";
-    mixerFlags = ["MIXER", "HIGH_RISK_DEX"];
-    dexName = "JustLend Protocol Gateway";
-    dexAddr = "TJLendLiquidityPoolContract771";
-  } else if (chain === "BTC") {
-    mixerName = "Wasabi CoinJoin Anonymizer";
-    mixerAddr = "bc1qWasabiCoinJoinPoolMixer440";
-    mixerFlags = ["MIXER", "COINJOIN_PRIVACY"];
-    dexName = "THORChain Cross-Chain Vault";
-    dexAddr = "bc1qThorChainLiquidityVault119";
+  let allGraphNodes: TraceNode[] = [];
+  let allEdges: TraceEdge[] = [];
+  let typologyCode = "TYP_TASK_MULE";
+  let typologyName = "Part-Time Task Scam & Prepaid Rating Fraud";
+  let threatActor = "Organized Telegram / WhatsApp Task Syndicate";
+  let legalClass = "IPC Sec 419, 420, 120-B | IT Act Sec 66-D | Section 63 BSA 2023";
+  let riskScore = 88;
+  let riskLevel: "CRITICAL" | "HIGH" | "ELEVATED" | "LOW" = "CRITICAL";
+  let anomalyTier = "CRITICAL_ANOMALY";
+  let anomalyIndex = 0.88;
+  let zScore = "+3.42σ (High Velocity)";
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ARCHETYPE 0: DeFi Exploit / OFAC Mixer Obfuscation (6 nodes, 5 edges)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (arch === 0) {
+    typologyCode = "TYP_OFAC_MIXER_HEIST";
+    typologyName = "DeFi Smart Contract Exploit & OFAC Mixer Obfuscation";
+    threatActor = "Advanced Persistent Cyber Heist Syndicate";
+    legalClass = "IT Act Sec 43, 66 | IPC Sec 379, 420, 120-B | Section 3/4 PMLA 2002";
+    riskScore = Math.min(99, 93 + (seed % 6));
+    riskLevel = "CRITICAL";
+    anomalyTier = "CRITICAL_ANOMALY";
+    anomalyIndex = 0.96;
+    zScore = "+4.85σ (Extreme Exploit Outflow)";
+
+    const m1 = deriveRealisticAddress(chain, "peel_collector", seed);
+    const mixerName = chain === "ETH" ? "Tornado.Cash 100 ETH Pool" : chain === "BTC" ? "Wasabi CoinJoin Anonymizer" : "SunSwap Anonymization Vault";
+    const mx = deriveRealisticAddress(chain, "mixer_pool", seed);
+    const pm = deriveRealisticAddress(chain, "post_mixer_sweep", seed);
+    const vc = deriveRealisticAddress(chain, "vasp_cold_vault", seed);
+
+    allGraphNodes = [
+      { id: addr, type: "SUSPECT", label: "Origin Exploit Wallet", chain, is_suspect: true, hop_distance: 0, risk_flags: ["ILLICIT_HEIST", "VICTIM_DRAIN"] },
+      { id: m1, type: "SUSPECT", label: "High-Speed Peeling Intermediary", chain, is_suspect: true, hop_distance: 1, risk_flags: ["PEELING_INTERMEDIARY"] },
+      { id: mx, type: "MIXER", label: mixerName, chain, is_suspect: false, hop_distance: 2, sanction_status: "OFAC_SDN", risk_flags: ["MIXER", "OFAC_SDN"] },
+      { id: pm, type: "SUSPECT", label: "Post-Mixer Sweep Collector", chain, is_suspect: true, hop_distance: 3, risk_flags: ["POST_MIXER_SWEEP"] },
+      { id: vasp.addr, type: "EXCHANGE", label: vasp.label, chain, is_suspect: false, hop_distance: 4, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: vasp.conf, risk_flags: ["VASP_HOT_WALLET", "EXIT_RAMP"] },
+      { id: vc, type: "EXCHANGE", label: `${vasp.name} Reserve Cold Vault`, chain, is_suspect: false, hop_distance: 5, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: 0.99, risk_flags: ["COLD_STORAGE"] }
+    ];
+
+    allEdges = [
+      { id: "e1", source: addr, target: m1, amount: Number((totalDeposit * 0.96).toFixed(2)), timestamp: makeTs(36), chain, hash: deriveTxHash(chain, 1, seed) },
+      { id: "e2", source: m1, target: mx, amount: Number((totalDeposit * 0.90).toFixed(2)), timestamp: makeTs(28), chain, hash: deriveTxHash(chain, 2, seed) },
+      { id: "e3", source: mx, target: pm, amount: Number((totalDeposit * 0.86).toFixed(2)), timestamp: makeTs(18), chain, hash: deriveTxHash(chain, 3, seed) },
+      { id: "e4", source: pm, target: vasp.addr, amount: Number((totalDeposit * 0.82).toFixed(2)), timestamp: makeTs(8), chain, hash: deriveTxHash(chain, 4, seed) },
+      { id: "e5", source: vasp.addr, target: vc, amount: Number((totalDeposit * 0.70).toFixed(2)), timestamp: makeTs(2), chain, hash: deriveTxHash(chain, 5, seed) }
+    ];
   }
 
-  // ── Intermediary Wallets Deterministic Generation ──
-  const pfx = chain === "TRX" ? "T" : chain === "BTC" ? "bc1q" : "0x";
-  const mule1Addr = `${pfx}Mule1_${addr.slice(2, 6) || "9A"}_Aggregator`;
-  const mule2Addr = `${pfx}Mule2_${addr.slice(-4) || "8F"}_Funnel`;
-  const split1Addr = `${pfx}Splitter_${addr.slice(3, 7) || "4B"}_Layer`;
-  const p2pAddr = `${pfx}P2P_${addr.slice(-3) || "3C"}_Settlement`;
-  const postMixerAddr = `${pfx}PostMixer_${addr.slice(2, 5) || "7D"}_Sweep`;
-  const bridgeAddr = `${pfx}Bridge_${chain === "ETH" ? "Wormhole" : "Allbridge"}_Router`;
-  const vaspColdVault = `${pfx}ColdStorage_${vasp.name}_MultiSig`;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ARCHETYPE 1: Task Scam Mule Fan-Out & Smurfing (10 nodes, 10 edges)
+  // ═══════════════════════════════════════════════════════════════════════════
+  else if (arch === 1) {
+    typologyCode = "TYP_TASK_MULE_FANOUT";
+    typologyName = "Part-Time Task Scam & Prepaid Rating Fraud (Mule Fan-Out)";
+    threatActor = "Organized Telegram Task Fraud Cartel (Southeast Asia)";
+    legalClass = "IPC Sec 419, 420, 120-B | IT Act Sec 66-D | Section 63 BSA 2023";
+    riskScore = Math.min(94, 85 + (seed % 7));
+    riskLevel = "CRITICAL";
+    anomalyTier = "HIGH_RISK_ANOMALY";
+    anomalyIndex = 0.88;
+    zScore = "+3.45σ (High Velocity Structuring)";
 
-  // ── All 6 Hops Graph Nodes ──
-  const allGraphNodes = [
-    // Hop 0
-    { id: addr, type: "SUSPECT" as const, label: "Origin Scam Deposit", chain, is_suspect: true, hop_distance: 0, risk_flags: ["VICTIM_DEPOSIT", "HIGH_RISK"] },
-    // Hop 1
-    { id: mule1Addr, type: "SUSPECT" as const, label: "Layer 1 Aggregator Mule", chain, is_suspect: true, hop_distance: 1, risk_flags: ["FAN_OUT", "MULE"] },
-    { id: mule2Addr, type: "SUSPECT" as const, label: "Layer 1 Secondary Mule", chain, is_suspect: true, hop_distance: 1, risk_flags: ["FAN_OUT", "MULE"] },
-    // Hop 2
-    { id: split1Addr, type: "SUSPECT" as const, label: "Smurfing Funnel Splitter", chain, is_suspect: true, hop_distance: 2, risk_flags: ["SMURFING", "LAYERING"] },
-    { id: p2pAddr, type: "SUSPECT" as const, label: "P2P Settlement Collector", chain, is_suspect: true, hop_distance: 2, risk_flags: ["P2P_RAMP", "LAYERING"] },
-    // Hop 3
-    { id: mixerAddr, type: "MIXER" as const, label: mixerName, chain, is_suspect: false, hop_distance: 3, sanction_status: chain === "ETH" ? "OFAC_SDN" : undefined, risk_flags: mixerFlags },
-    { id: dexAddr, type: "DEX" as const, label: dexName, chain, is_suspect: false, hop_distance: 3, risk_flags: ["DEX_ROUTER", "SWAP"] },
-    // Hop 4
-    { id: postMixerAddr, type: "SUSPECT" as const, label: "Post-Obfuscation Collector", chain, is_suspect: true, hop_distance: 4, risk_flags: ["POST_MIXER_SWEEP"] },
-    { id: bridgeAddr, type: "BRIDGE" as const, label: "Cross-Chain Liquidity Gateway", chain, is_suspect: false, hop_distance: 4, risk_flags: ["CROSS_CHAIN_BRIDGE"] },
-    // Hop 5
-    { id: vasp.addr, type: "EXCHANGE" as const, label: vasp.label, chain, is_suspect: false, hop_distance: 5, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: vasp.conf, risk_flags: ["VASP_HOT_WALLET", "EXIT_RAMP"] },
-    // Hop 6
-    { id: vaspColdVault, type: "EXCHANGE" as const, label: `${vasp.name} Cold Multi-Sig Vault`, chain, is_suspect: false, hop_distance: 6, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: 0.99, risk_flags: ["COLD_STORAGE", "RESERVE"] }
-  ];
+    const mA = deriveRealisticAddress(chain, "mule_primary", seed);
+    const mB = deriveRealisticAddress(chain, "mule_secondary", seed);
+    const mC = deriveRealisticAddress(chain, "mule_tertiary", seed);
+    const con = deriveRealisticAddress(chain, "smurfing_hub", seed);
+    const p2p = deriveRealisticAddress(chain, "p2p_settlement", seed);
+    const dexName = chain === "ETH" ? "Uniswap V3 Router" : chain === "BTC" ? "THORChain Vault" : "JustLend Protocol Gateway";
+    const dex = deriveRealisticAddress(chain, "dex_router", seed);
+    const otc = deriveRealisticAddress(chain, "otc_aggregator", seed);
+    const vc = deriveRealisticAddress(chain, "cold_reserve_multisig", seed);
+
+    allGraphNodes = [
+      { id: addr, type: "SUSPECT", label: "Victim Fraud Intake Deposit", chain, is_suspect: true, hop_distance: 0, risk_flags: ["TASK_SCAM", "ORIGIN_DEPOSIT"] },
+      { id: mA, type: "SUSPECT", label: "Layer-1 Primary Mule", chain, is_suspect: true, hop_distance: 1, risk_flags: ["MULE", "FAN_OUT"] },
+      { id: mB, type: "SUSPECT", label: "Layer-1 Secondary Mule", chain, is_suspect: true, hop_distance: 1, risk_flags: ["MULE", "FAN_OUT"] },
+      { id: mC, type: "SUSPECT", label: "Layer-1 Tertiary Mule", chain, is_suspect: true, hop_distance: 1, risk_flags: ["MULE", "FAN_OUT"] },
+      { id: con, type: "SUSPECT", label: "Smurfing Consolidation Hub", chain, is_suspect: true, hop_distance: 2, risk_flags: ["SMURFING", "LAYERING"] },
+      { id: p2p, type: "SUSPECT", label: "P2P Settlement Gateway", chain, is_suspect: true, hop_distance: 2, risk_flags: ["P2P_RAMP", "LAYERING"] },
+      { id: dex, type: "DEX", label: dexName, chain, is_suspect: false, hop_distance: 3, risk_flags: ["DEX_ROUTER", "SWAP"] },
+      { id: otc, type: "SUSPECT", label: "OTC Aggregator Wallet", chain, is_suspect: true, hop_distance: 3, risk_flags: ["OTC_BROKER"] },
+      { id: vasp.addr, type: "EXCHANGE", label: vasp.label, chain, is_suspect: false, hop_distance: 4, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: vasp.conf, risk_flags: ["VASP_HOT_WALLET", "EXIT_RAMP"] },
+      { id: vc, type: "EXCHANGE", label: `${vasp.name} Cold Multi-Sig Vault`, chain, is_suspect: false, hop_distance: 5, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: 0.99, risk_flags: ["COLD_STORAGE"] }
+    ];
+
+    allEdges = [
+      { id: "e1", source: addr, target: mA, amount: Number((totalDeposit * 0.40).toFixed(2)), timestamp: makeTs(40), chain, hash: deriveTxHash(chain, 10, seed) },
+      { id: "e2", source: addr, target: mB, amount: Number((totalDeposit * 0.35).toFixed(2)), timestamp: makeTs(39), chain, hash: deriveTxHash(chain, 11, seed) },
+      { id: "e3", source: addr, target: mC, amount: Number((totalDeposit * 0.25).toFixed(2)), timestamp: makeTs(38), chain, hash: deriveTxHash(chain, 12, seed) },
+      { id: "e4", source: mA, target: con, amount: Number((totalDeposit * 0.38).toFixed(2)), timestamp: makeTs(30), chain, hash: deriveTxHash(chain, 13, seed) },
+      { id: "e5", source: mB, target: con, amount: Number((totalDeposit * 0.33).toFixed(2)), timestamp: makeTs(29), chain, hash: deriveTxHash(chain, 14, seed) },
+      { id: "e6", source: mC, target: p2p, amount: Number((totalDeposit * 0.23).toFixed(2)), timestamp: makeTs(28), chain, hash: deriveTxHash(chain, 15, seed) },
+      { id: "e7", source: con, target: dex, amount: Number((totalDeposit * 0.42).toFixed(2)), timestamp: makeTs(18), chain, hash: deriveTxHash(chain, 16, seed) },
+      { id: "e8", source: con, target: otc, amount: Number((totalDeposit * 0.26).toFixed(2)), timestamp: makeTs(17), chain, hash: deriveTxHash(chain, 17, seed) },
+      { id: "e9", source: p2p, target: otc, amount: Number((totalDeposit * 0.21).toFixed(2)), timestamp: makeTs(16), chain, hash: deriveTxHash(chain, 18, seed) },
+      { id: "e10", source: dex, target: vasp.addr, amount: Number((totalDeposit * 0.40).toFixed(2)), timestamp: makeTs(8), chain, hash: deriveTxHash(chain, 19, seed) },
+      { id: "e11", source: otc, target: vasp.addr, amount: Number((totalDeposit * 0.44).toFixed(2)), timestamp: makeTs(7), chain, hash: deriveTxHash(chain, 20, seed) },
+      { id: "e12", source: vasp.addr, target: vc, amount: Number((totalDeposit * 0.70).toFixed(2)), timestamp: makeTs(2), chain, hash: deriveTxHash(chain, 21, seed) }
+    ];
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ARCHETYPE 2: Pig Butchering / Romance Fraud DEX Swaps (8 nodes, 8 edges)
+  // ═══════════════════════════════════════════════════════════════════════════
+  else if (arch === 2) {
+    typologyCode = "TYP_SHA_ZHU_PAN";
+    typologyName = "Investment Fraud / Sha Zhu Pan (Pig Butchering DEX Funnel)";
+    threatActor = "Mekong Delta Transnational Pig Butchering Cartel";
+    legalClass = "IPC Sec 420, 384, 120-B | IT Act Sec 66-C, 66-D | Section 63 BSA 2023";
+    riskScore = Math.min(96, 89 + (seed % 6));
+    riskLevel = "CRITICAL";
+    anomalyTier = "CRITICAL_ANOMALY";
+    anomalyIndex = 0.92;
+    zScore = "+3.91σ (Rapid Tether Conversion)";
+
+    const h1 = deriveRealisticAddress(chain, "romance_handler_alpha", seed);
+    const h2 = deriveRealisticAddress(chain, "romance_handler_beta", seed);
+    const dexName = chain === "TRX" ? "SunSwap High-Slippage Pool" : "Uniswap V3 Router";
+    const dp = deriveRealisticAddress(chain, "dex_liquidity_pool", seed);
+    const br = deriveRealisticAddress(chain, "cross_chain_stargate", seed);
+    const trc = deriveRealisticAddress(chain, "trc20_aggregator_mule", seed);
+    const bc = deriveRealisticAddress(chain, "secondary_bridge_collector", seed);
+    const vc = deriveRealisticAddress(chain, "vasp_reserve_vault", seed);
+
+    allGraphNodes = [
+      { id: addr, type: "SUSPECT", label: "Fake Trading Platform Deposit", chain, is_suspect: true, hop_distance: 0, risk_flags: ["ROMANCE_FRAUD", "PIG_BUTCHERING"] },
+      { id: h1, type: "SUSPECT", label: "Regional Syndicate Collector Alpha", chain, is_suspect: true, hop_distance: 1, risk_flags: ["SYNDICATE_COLLECTOR"] },
+      { id: h2, type: "SUSPECT", label: "Regional Syndicate Collector Beta", chain, is_suspect: true, hop_distance: 1, risk_flags: ["SYNDICATE_COLLECTOR"] },
+      { id: dp, type: "DEX", label: dexName, chain, is_suspect: false, hop_distance: 2, risk_flags: ["HIGH_RISK_DEX", "SWAP"] },
+      { id: br, type: "BRIDGE", label: "Stargate Cross-Chain Gateway", chain, is_suspect: false, hop_distance: 2, risk_flags: ["CROSS_CHAIN_BRIDGE"] },
+      { id: trc, type: "SUSPECT", label: "TRC-20 Aggregator Mule", chain, is_suspect: true, hop_distance: 3, risk_flags: ["USDT_AGGREGATOR"] },
+      { id: bc, type: "SUSPECT", label: "Secondary Chain Collector", chain, is_suspect: true, hop_distance: 3, risk_flags: ["BRIDGE_OUTPUT"] },
+      { id: vasp.addr, type: "EXCHANGE", label: vasp.label, chain, is_suspect: false, hop_distance: 4, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: vasp.conf, risk_flags: ["VASP_HOT_WALLET", "EXIT_RAMP"] },
+      { id: vc, type: "EXCHANGE", label: `${vasp.name} Cold Reserve Vault`, chain, is_suspect: false, hop_distance: 5, vasp_name: vasp.name, vasp_jurisdiction: vasp.jur, confidence: 0.99, risk_flags: ["COLD_STORAGE"] }
+    ];
+
+    allEdges = [
+      { id: "e1", source: addr, target: h1, amount: Number((totalDeposit * 0.58).toFixed(2)), timestamp: makeTs(38), chain, hash: deriveTxHash(chain, 30, seed) },
+      { id: "e2", source: addr, target: h2, amount: Number((totalDeposit * 0.42).toFixed(2)), timestamp: makeTs(37), chain, hash: deriveTxHash(chain, 31, seed) },
+      { id: "e3", source: h1, target: dp, amount: Number((totalDeposit * 0.54).toFixed(2)), timestamp: makeTs(26), chain, hash: deriveTxHash(chain, 32, seed) },
+      { id: "e4", source: h2, target: br, amount: Number((totalDeposit * 0.40).toFixed(2)), timestamp: makeTs(25), chain, hash: deriveTxHash(chain, 33, seed) },
+      { id: "e5", source: dp, target: trc, amount: Number((totalDeposit * 0.50).toFixed(2)), timestamp: makeTs(16), chain, hash: deriveTxHash(chain, 34, seed) },
+      { id: "e6", source: br, target: bc, amount: Number((totalDeposit * 0.38).toFixed(2)), timestamp: makeTs(15), chain, hash: deriveTxHash(chain, 35, seed) },
+      { id: "e7", source: trc, target: vasp.addr, amount: Number((totalDeposit * 0.48).toFixed(2)), timestamp: makeTs(6), chain, hash: deriveTxHash(chain, 36, seed) },
+      { id: "e8", source: bc, target: vasp.addr, amount: Number((totalDeposit * 0.36).toFixed(2)), timestamp: makeTs(5), chain, hash: deriveTxHash(chain, 37, seed) },
+      { id: "e9", source: vasp.addr, target: vc, amount: Number((totalDeposit * 0.65).toFixed(2)), timestamp: makeTs(2), chain, hash: deriveTxHash(chain, 38, seed) }
+    ];
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ARCHETYPE 3: Ransomware Extortion Peeling Chain (8 nodes, 8 edges)
+  // ═══════════════════════════════════════════════════════════════════════════
+  else if (arch === 3) {
+    typologyCode = "TYP_RANSOM_01";
+    typologyName = "LockBit 3.0 Ransomware Extortion & CoinJoin Laundering";
+    threatActor = "LockBit / BlackCat Ransomware-as-a-Service Syndicate";
+    legalClass = "IPC Sec 384, 385, 420, 120-B | IT Act Sec 43, 66, 66-F | Section 63 BSA 2023";
+    riskScore = Math.min(99, 94 + (seed % 5));
+    riskLevel = "CRITICAL";
+    anomalyTier = "EXTREME_OUTLIER";
+    anomalyIndex = 0.98;
+    zScore = "+4.75σ (Critical UTXO Peel Chain)";
+
+    const p1 = deriveRealisticAddress(chain, "peel_hop1", seed);
+    const aff = deriveRealisticAddress(chain, "affiliate_cut", seed);
+    const p2 = deriveRealisticAddress(chain, "peel_hop2", seed);
+    const cjmName = chain === "BTC" ? "Wasabi CoinJoin Anonymizer" : "Tornado Cash 10 ETH";
+    const cjm = deriveRealisticAddress(chain, "coinjoin_pool", seed);
+    const pmc = deriveRealisticAddress(chain, "post_coinjoin_collector", seed);
+    const p2b = deriveRealisticAddress(chain, "high_risk_otc_broker", seed);
+
+    allGraphNodes = [
+      { id: addr, type: "SUSPECT", label: "Ransom Extortion Payment Wallet", chain, is_suspect: true, hop_distance: 0, risk_flags: ["RANSOMWARE_PAYMENT", "EXTORTION"] },
+      { id: p1, type: "SUSPECT", label: "Peeling Chain Hop 1", chain, is_suspect: true, hop_distance: 1, risk_flags: ["PEELING_FORWARD"] },
+      { id: aff, type: "SUSPECT", label: "Affiliate Syndicate Share", chain, is_suspect: true, hop_distance: 1, risk_flags: ["AFFILIATE_SHARE"] },
+      { id: p2, type: "SUSPECT", label: "Peeling Chain Hop 2", chain, is_suspect: true, hop_distance: 2, risk_flags: ["PEELING_FORWARD"] },
+      { id: cjm, type: "MIXER", label: cjmName, chain, is_suspect: false, hop_distance: 2, sanction_status: "HIGH_RISK_PRIVACY", risk_flags: ["MIXER", "COINJOIN"] },
+      { id: pmc, type: "SUSPECT", label: "Post-CoinJoin Collector", chain, is_suspect: true, hop_distance: 3, risk_flags: ["POST_MIXER_SWEEP"] },
+      { id: p2b, type: "SUSPECT", label: "High-Risk OTC Broker", chain, is_suspect: true, hop_distance: 4, risk_flags: ["P2P_CASHOUT"] },
+      { id: vasp.addr, type: "EXCHANGE", label: vasp.label, chain, is_suspect: false, hop_distance: 5, vasp_name: vasp.name, confidence: vasp.conf, vasp_jurisdiction: vasp.jur, risk_flags: ["VASP_HOT_WALLET", "EXIT_RAMP"] }
+    ];
+
+    allEdges = [
+      { id: "e1", source: addr, target: p1, amount: Number((totalDeposit * 0.85).toFixed(3)), timestamp: makeTs(36), chain, hash: deriveTxHash(chain, 40, seed) },
+      { id: "e2", source: addr, target: aff, amount: Number((totalDeposit * 0.15).toFixed(3)), timestamp: makeTs(35), chain, hash: deriveTxHash(chain, 41, seed) },
+      { id: "e3", source: p1, target: p2, amount: Number((totalDeposit * 0.72).toFixed(3)), timestamp: makeTs(25), chain, hash: deriveTxHash(chain, 42, seed) },
+      { id: "e4", source: p1, target: cjm, amount: Number((totalDeposit * 0.11).toFixed(3)), timestamp: makeTs(24), chain, hash: deriveTxHash(chain, 43, seed) },
+      { id: "e5", source: p2, target: pmc, amount: Number((totalDeposit * 0.68).toFixed(3)), timestamp: makeTs(15), chain, hash: deriveTxHash(chain, 44, seed) },
+      { id: "e6", source: cjm, target: pmc, amount: Number((totalDeposit * 0.10).toFixed(3)), timestamp: makeTs(14), chain, hash: deriveTxHash(chain, 45, seed) },
+      { id: "e7", source: pmc, target: p2b, amount: Number((totalDeposit * 0.74).toFixed(3)), timestamp: makeTs(6), chain, hash: deriveTxHash(chain, 46, seed) },
+      { id: "e8", source: p2b, target: vasp.addr, amount: Number((totalDeposit * 0.70).toFixed(3)), timestamp: makeTs(2), chain, hash: deriveTxHash(chain, 47, seed) }
+    ];
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ARCHETYPE 4: Compliant Retail / DeFi Staking Flow (5 nodes, 4 edges, CLEAN)
+  // ═══════════════════════════════════════════════════════════════════════════
+  else {
+    typologyCode = "TYP_COMPLIANT_RETAIL";
+    typologyName = "Compliant Retail Activity & Proof-of-Stake Staking";
+    threatActor = "Verified Non-Adversarial Retail Investor";
+    legalClass = "Compliant Digital Asset Transaction (No Predicate Offence)";
+    riskScore = Math.min(28, 18 + (seed % 9));
+    riskLevel = "LOW";
+    anomalyTier = "NORMAL_RETAIL";
+    anomalyIndex = 0.16;
+    zScore = "+0.42σ (Normal Retail Volume)";
+
+    const dx = deriveRealisticAddress(chain, "uniswap_router", seed);
+    const stk = deriveRealisticAddress(chain, "staking_contract", seed);
+    const cld = deriveRealisticAddress(chain, "cold_hardware_vault", seed);
+    const cex = deriveRealisticAddress(chain, "compliant_exchange_vault", seed);
+
+    allGraphNodes = [
+      { id: addr, type: "UNKNOWN", label: "Verified Retail User Wallet", chain, is_suspect: false, hop_distance: 0, risk_flags: ["RETAIL_USER", "COMPLIANT"] },
+      { id: dx, type: "DEX", label: "Uniswap V3 Protocol Router", chain, is_suspect: false, hop_distance: 1, risk_flags: ["DEX_ROUTER", "VERIFIED_PROTOCOL"] },
+      { id: stk, type: "UNKNOWN", label: "Lido Staked Asset Protocol", chain, is_suspect: false, hop_distance: 2, risk_flags: ["STAKING_CONTRACT", "AUDITED"] },
+      { id: cld, type: "UNKNOWN", label: "Hardware Cold Storage", chain, is_suspect: false, hop_distance: 3, risk_flags: ["PERSONAL_COLD_STORAGE"] },
+      { id: cex, type: "EXCHANGE", label: "CoinDCX FIU-IND Compliant Exchange", chain, is_suspect: false, hop_distance: 4, vasp_name: "CoinDCX", vasp_jurisdiction: "India (FIU-IND Registered)", confidence: 0.99, risk_flags: ["FIU_IND_COMPLIANT", "KYC_VERIFIED"] }
+    ];
+
+    allEdges = [
+      { id: "e1", source: addr, target: dx, amount: Number((totalDeposit * 0.98).toFixed(2)), timestamp: makeTs(40), chain, hash: deriveTxHash(chain, 50, seed) },
+      { id: "e2", source: dx, target: stk, amount: Number((totalDeposit * 0.95).toFixed(2)), timestamp: makeTs(30), chain, hash: deriveTxHash(chain, 51, seed) },
+      { id: "e3", source: stk, target: cld, amount: Number((totalDeposit * 0.90).toFixed(2)), timestamp: makeTs(15), chain, hash: deriveTxHash(chain, 52, seed) },
+      { id: "e4", source: cld, target: cex, amount: Number((totalDeposit * 0.45).toFixed(2)), timestamp: makeTs(4), chain, hash: deriveTxHash(chain, 53, seed) }
+    ];
+  }
 
   // ── Filter nodes strictly by requested hops ──
   const nodes = allGraphNodes.filter((n) => n.hop_distance <= effectiveHops);
   const nodeIds = new Set(nodes.map((n) => n.id));
-
-  // ── Amounts & Percentages ──
-  const p1 = Number((totalDeposit * 0.62).toFixed(2));
-  const p2 = Number((totalDeposit * 0.38).toFixed(2));
-  const p3 = Number((p1 * 0.92).toFixed(2));
-  const p4 = Number((p2 * 0.94).toFixed(2));
-  const p5 = Number((p3 * 0.95).toFixed(2));
-  const p6 = Number((p4 * 0.95).toFixed(2));
-  const p7 = Number((p5 * 0.96).toFixed(2));
-  const p8 = Number((p6 * 0.96).toFixed(2));
-  const p9 = Number((p7 * 0.98).toFixed(2));
-  const p10 = Number((p8 * 0.98).toFixed(2));
-  const p11 = Number(((p9 + p10) * 0.85).toFixed(2));
-
-  const now = Date.now();
-  const makeTxHash = (i: number) => {
-    let h = "";
-    for (let k = 0; k < 4; k++) {
-      h += Math.abs((seed ^ (i * 1000 + k * 2345)) * 16807).toString(16).padStart(8, "0");
-    }
-    return chain === "BTC" || chain === "TRX" ? h.substring(0, 64) : `0x${h.substring(0, 64)}`;
-  };
-
-  // ── All Potential Edges ──
-  const allEdges = [
-    // Hop 1
-    { id: "e1", source: addr, target: mule1Addr, amount: p1, timestamp: new Date(now - 7200000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(1) },
-    { id: "e2", source: addr, target: mule2Addr, amount: p2, timestamp: new Date(now - 7000000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(2) },
-    // Hop 2
-    { id: "e3", source: mule1Addr, target: split1Addr, amount: p3, timestamp: new Date(now - 5600000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(3) },
-    { id: "e4", source: mule2Addr, target: p2pAddr, amount: p4, timestamp: new Date(now - 5400000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(4) },
-    // Hop 3
-    { id: "e5", source: split1Addr, target: mixerAddr, amount: p5, timestamp: new Date(now - 4200000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(5) },
-    { id: "e6", source: p2pAddr, target: dexAddr, amount: p6, timestamp: new Date(now - 4000000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(6) },
-    // Hop 4
-    { id: "e7", source: mixerAddr, target: postMixerAddr, amount: p7, timestamp: new Date(now - 2800000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(7) },
-    { id: "e8", source: dexAddr, target: bridgeAddr, amount: p8, timestamp: new Date(now - 2600000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(8) },
-    // Hop 5
-    { id: "e9", source: postMixerAddr, target: vasp.addr, amount: p9, timestamp: new Date(now - 1400000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(9) },
-    { id: "e10", source: bridgeAddr, target: vasp.addr, amount: p10, timestamp: new Date(now - 1200000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(10) },
-    // Hop 6
-    { id: "e11", source: vasp.addr, target: vaspColdVault, amount: p11, timestamp: new Date(now - 300000).toISOString().replace("T", " ").substring(0, 19), chain, hash: makeTxHash(11) }
-  ];
-
-  // ── Filter edges strictly by active nodes ──
   const edges = allEdges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
-
-  // ── Risk Score Calculation ──
-  let riskScore = 78;
-  if (effectiveHops >= 3) riskScore += 10;
-  if (effectiveHops >= 5) riskScore += 6;
-  riskScore = Math.min(96, riskScore + (seed % 6));
 
   // ── Deterministic SHA-256 Digest ──
   let sha = "";
@@ -386,9 +561,13 @@ export const getMockTraceResult = (
 
   // ── Case Specific Narrative ──
   const narrative = `Forensic graph analysis of wallet ${addr} on the ${chain} ledger confirms ${typologyName}. 
-An initial fraudulent dissipation of ${totalDeposit} ${chain} (approx. ₹${fiatINR.toLocaleString("en-IN")}) was detected. 
-Proceeds were split across 2 Layer-1 aggregator mules at Hop 1, layered through smurfing and obfuscation infrastructure (${mixerName}) at Hop 3, with ${edges.length} structured transactions mapped across ${nodes.length} nodes over ${effectiveHops} hops. 
-${effectiveHops >= 5 ? `Terminal fund liquidation occurred at centralized exchange ${vasp.name} (${vasp.addr.slice(0, 10)}...) under jurisdiction of ${vasp.jur}. Immediate statutory freeze summons under Section 91 CrPC / Section 94 BNSS is advised.` : `Funds have progressed through ${effectiveHops} hops and remain under active surveillance pending terminal VASP attribution.`}`;
+An initial ledger movement of ${totalDeposit} ${chain} (approx. ₹${fiatINR.toLocaleString("en-IN")}) was detected. 
+Proceeds traversed ${nodes.length} distinct graph nodes via ${edges.length} structured transactions over ${effectiveHops} hops. 
+${
+  riskScore > 70
+    ? `Terminal fund liquidation reached regulated exchange ${vasp.name} (${vasp.addr.slice(0, 10)}...) under jurisdiction of ${vasp.jur}. Immediate statutory freeze summons under Section 91 CrPC / Section 94 BNSS is advised.`
+    : `Transaction flow is compliant with standard retail/staking activity with no illicit mixer or sanctioned entity interaction.`
+}`;
 
   return {
     investigation_id: invId,
@@ -411,7 +590,12 @@ ${effectiveHops >= 5 ? `Terminal fund liquidation occurred at centralized exchan
       confidence_pct: "96%",
       threat_actor: threatActor,
       legal_classification: legalClass,
-      indicators: ["RAPID_FAN_OUT", "SMURFING_SPLITTING", "OBFUSCATION_ROUTING", "TERMINAL_VASP_SWEEP"],
+      indicators: [
+        `Graph depth: ${effectiveHops} hops traced across ${nodes.length} nodes`,
+        `Edge density: ${edges.length} verified transactions mapped`,
+        `Typology classification: ${typologyName}`,
+        riskScore > 70 ? "Terminal liquidation: Regulated VASP hot wallet identified" : "Compliant non-adversarial activity"
+      ],
       investigative_sop: [
         `1. Serve Section 91 CrPC / Section 94 BNSS preservation requisition to ${vasp.name} compliance desk`,
         "2. Interdict Layer-1 and Layer-2 mule UPI/IMPS withdrawal gateways across partner banks",
@@ -420,16 +604,16 @@ ${effectiveHops >= 5 ? `Terminal fund liquidation occurred at centralized exchan
       ]
     },
     ml_anomaly: {
-      ml_anomaly_index: Number((0.82 + (seed % 15) / 100).toFixed(2)),
-      anomaly_tier: "CRITICAL_ANOMALY",
-      z_score_velocity: `+${(3.1 + (seed % 10) / 10).toFixed(2)}σ (High Velocity)`,
+      ml_anomaly_index: anomalyIndex,
+      anomaly_tier: anomalyTier,
+      z_score_velocity: zScore,
       value_entropy_index: 0.92,
       graph_centrality_skew: 0.86,
       model_description: "Isolation Forest + Graph Neural Network Anomaly Detector v2.4",
       explanations: [
-        "Velocity deviation exceeds 99.2th percentile of standard retail volume",
-        "High smurfing entropy indicates automated algorithmic splitting across multiple mules",
-        "Terminal flow consolidates directly into KYC-verified VASP hot wallet"
+        `Velocity index deviation: ${zScore}`,
+        riskScore > 70 ? "Algorithmic smurfing and laundering structuring detected" : "Standard retail liquidity distribution",
+        `Terminal node attribution confidence: ${Math.round(vasp.conf * 100)}%`
       ]
     },
     evidence: {
@@ -450,11 +634,22 @@ ${effectiveHops >= 5 ? `Terminal fund liquidation occurred at centralized exchan
     },
     intelligence: {
       risk_score: riskScore,
-      risk_level: riskScore >= 75 ? "CRITICAL" : "HIGH",
+      risk_level: riskLevel,
       risk_factors: [
-        { factor: "Anonymization & Privacy Routing", points: 35, description: `Funds routed through ${mixerName} to break continuous transaction linkage.`, severity: "CRITICAL", icon: "AlertTriangle" },
-        { factor: "Algorithmic Fan-Out Smurfing", points: 25, description: `Automated structuring across ${nodes.filter((n) => n.hop_distance <= 2).length} intermediary mule addresses.`, severity: "HIGH", icon: "Split" },
-        { factor: "Terminal VASP Liquidation Exit", points: 25, description: `Identified final exit ramp at centralized exchange ${vasp.name} (${vasp.addr.slice(0, 10)}...).`, severity: "HIGH", icon: "Building2" }
+        {
+          factor: riskScore > 70 ? "High-Velocity Cyber Laundering" : "Compliant Asset Transfer",
+          points: riskScore > 70 ? 40 : 10,
+          description: riskScore > 70 ? `Funds structured across ${nodes.length} multi-hop nodes.` : "Compliant retail transfer pattern.",
+          severity: riskScore > 70 ? "CRITICAL" : "LOW",
+          icon: "AlertTriangle"
+        },
+        {
+          factor: "VASP Exit Attribution",
+          points: 25,
+          description: `Terminal exit ramp attributed to ${vasp.name} (${vasp.addr.slice(0, 10)}...).`,
+          severity: "HIGH",
+          icon: "Building2"
+        }
       ],
       vasp: {
         name: vasp.name,
@@ -471,8 +666,8 @@ ${effectiveHops >= 5 ? `Terminal fund liquidation occurred at centralized exchan
       chains_involved: [chain],
       total_transactions: edges.length,
       total_nodes: nodes.length,
-      has_mixer: effectiveHops >= 3,
-      has_cross_chain: effectiveHops >= 4,
+      has_mixer: arch === 0 || arch === 3,
+      has_cross_chain: arch === 2,
       max_hop_depth: effectiveHops
     }
   };

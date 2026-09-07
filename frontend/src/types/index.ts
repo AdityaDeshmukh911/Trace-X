@@ -1,5 +1,5 @@
 export type NodeType = "SUSPECT" | "MIXER" | "EXCHANGE" | "BRIDGE" | "DEX" | "UNKNOWN";
-export type RiskLevel = "CRITICAL" | "HIGH" | "ELEVATED";
+export type RiskLevel = "CRITICAL" | "HIGH" | "ELEVATED" | "LOW";
 export type Severity  = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 export type CaseStatus = "ACTIVE" | "PENDING" | "CLOSED";
 export type FreezeStatus = "DRAFT" | "SUBPOENA_GENERATED" | "FREEZE_REQUESTED" | "VASP_ACKNOWLEDGED" | "ASSETS_FROZEN" | "REJECTED";
